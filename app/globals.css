@@ -548,6 +548,10 @@ input:focus-visible {
 
 .journey-counters b { color: var(--glimmer); }
 
+.game-stage {
+  position: relative;
+}
+
 .game-frame {
   position: relative;
   width: 100%;
@@ -1516,15 +1520,18 @@ kbd { min-width: 33px; padding: 5px 7px; border: 1px solid rgba(207, 255, 221, 0
   font-size: 118%;
 }
 
-@media (pointer: coarse), (max-width: 820px) {
-  .touch-controls { display: flex; }
+@media (max-width: 820px) {
   .game-tools { top: 10px; }
   .game-tools button { padding: 0 9px; }
+}
+
+@media (pointer: coarse), (any-pointer: coarse) {
+  .touch-controls { display: flex; }
   .tutorial-card { width: min(340px, calc(100% - 250px)); }
   .mechanic-status { width: min(500px, calc(100% - 250px)); }
 }
 
-@media (pointer: coarse) {
+@media (pointer: coarse), (any-pointer: coarse) {
   .icon-button,
   .quiet-button,
   .modal-close,
@@ -1881,6 +1888,37 @@ kbd { min-width: 33px; padding: 5px 7px; border: 1px solid rgba(207, 255, 221, 0
   .modal-panel {
     max-height: calc(100svh - 16px);
     padding: 24px;
+  }
+}
+
+@media (pointer: fine) and (max-width: 480px) {
+  .game-stage {
+    display: grid;
+    gap: 10px;
+  }
+
+  .game-frame {
+    width: 100%;
+    height: auto;
+  }
+
+  .game-tools {
+    width: calc(100% - 32px);
+    justify-content: space-between;
+    gap: 2px;
+    padding: 3px;
+  }
+
+  .game-tools button {
+    min-width: 0;
+    padding-inline: 4px;
+  }
+
+  .game-stage > .mechanic-status,
+  .game-stage > .tutorial-card {
+    position: static;
+    width: 100%;
+    transform: none;
   }
 }
 

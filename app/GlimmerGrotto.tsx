@@ -858,8 +858,9 @@ export default function GlimmerGrotto() {
             </div>
           </div>
 
-          <div className="game-frame">
-            <div
+          <div className="game-stage">
+            <div className="game-frame">
+              <div
               ref={mountRef}
               className="game-mount"
               role="application"
@@ -911,7 +912,7 @@ export default function GlimmerGrotto() {
                 <small>{continueControl(inputMethod)}</small>
               </section>
             )}
-            <div className="game-tools" aria-label="Puzzle tools">
+            <div className="game-tools" role="toolbar" aria-label="Puzzle tools">
               <button
                 type="button"
                 disabled={!room || Boolean(biomeArrival)}
@@ -949,40 +950,7 @@ export default function GlimmerGrotto() {
                 <Icon>⌖</Icon> Map
               </button>
             </div>
-            {mechanicStatus.length > 0 && !biomeArrival && (
-              <aside id="puzzle-status" className="mechanic-status" aria-label="Puzzle status">
-                {mechanicStatus.map((item) => (
-                  <section
-                    key={item.kind}
-                    className={`mechanic-status__item mechanic-status__item--${item.kind}`}
-                  >
-                    <span className="mechanic-status__label">{item.label}</span>
-                    <strong>{item.value}</strong>
-                    {item.sequence && (
-                      <span className="mechanic-sequence" aria-hidden="true">
-                        {item.sequence.map((step, index) => (
-                          <span
-                            key={`${step.name}-${index}`}
-                            className={`mechanic-sequence__step is-${step.state}`}
-                          >
-                            {step.glyph}
-                          </span>
-                        ))}
-                      </span>
-                    )}
-                    <span className="sr-only">{item.detail}</span>
-                  </section>
-                ))}
-              </aside>
-            )}
-            {tutorial && (
-              <aside id="first-room-guide" className="tutorial-card" role="status">
-                <span>{tutorial.progress}</span>
-                <strong>{tutorial.title}</strong>
-                <p>{tutorial.detail}</p>
-              </aside>
-            )}
-            <div className="touch-controls" aria-label="Touch controls">
+            <div className="touch-controls" role="group" aria-label="Touch controls">
               <div className="touch-dpad">
                 <button
                   type="button"
@@ -1058,6 +1026,40 @@ export default function GlimmerGrotto() {
                 <span>Action</span>
               </button>
             </div>
+            </div>
+            {mechanicStatus.length > 0 && !biomeArrival && (
+              <aside id="puzzle-status" className="mechanic-status" aria-label="Puzzle status">
+                {mechanicStatus.map((item) => (
+                  <section
+                    key={item.kind}
+                    className={`mechanic-status__item mechanic-status__item--${item.kind}`}
+                  >
+                    <span className="mechanic-status__label">{item.label}</span>
+                    <strong>{item.value}</strong>
+                    {item.sequence && (
+                      <span className="mechanic-sequence" aria-hidden="true">
+                        {item.sequence.map((step, index) => (
+                          <span
+                            key={`${step.name}-${index}`}
+                            className={`mechanic-sequence__step is-${step.state}`}
+                          >
+                            {step.glyph}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                    <span className="sr-only">{item.detail}</span>
+                  </section>
+                ))}
+              </aside>
+            )}
+            {tutorial && (
+              <aside id="first-room-guide" className="tutorial-card" role="status">
+                <span>{tutorial.progress}</span>
+                <strong>{tutorial.title}</strong>
+                <p>{tutorial.detail}</p>
+              </aside>
+            )}
           </div>
 
           <div className={`story-row ${roomDescription ? "is-compass" : ""}`}>

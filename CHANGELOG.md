@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.16.0 — Room to breathe
+
+- Stopped narrow fine-pointer layouts from enabling five redundant touch
+  controls solely because browser zoom reduced the CSS viewport width.
+- Introduced a shared game stage so opening-room guidance and multi-mechanic
+  status can leave the canvas overlay and enter normal document flow at
+  extreme fine-pointer reflow sizes.
+- Expanded the zoomed canvas and compacted its five-item puzzle toolbar so
+  Focus, Compass, Hint, Reset, and Map remain fully visible at 320 CSS pixels.
+- Exposed puzzle tools as an accessibility toolbar and touch controls as a
+  named group while keeping touch-only controls out of fine-pointer navigation.
+- Verified the title, ending, Settings, first-room guide, three-mechanic
+  Heartbloom status, and Lantern Compass at 640 × 360, 320 × 360, and
+  320 × 180 equivalent CSS viewports without horizontal overflow.
+- Added a stylesheet regression guard for pointer-capability detection and
+  fine-pointer guidance reflow.
+
 ## 0.15.0 — A compass in the dark
 
 - Added an on-demand Lantern Compass that describes Mica's grid position,

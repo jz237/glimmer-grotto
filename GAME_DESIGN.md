@@ -63,4 +63,7 @@ pre-repair copy remains available as the backup generation.
   truncate the mechanic state needed to solve a room.
 - Canvas spatial state must remain inspectable without sight through concise,
   current, keyboard-, pointer-, and controller-accessible descriptions.
+- Narrow fine-pointer reflow must preserve every puzzle tool and move guidance
+  or mechanic state below the canvas when an overlay can no longer remain
+  legible. Viewport width alone must never activate redundant touch controls.
 - Player behavior is not transmitted or analyzed.

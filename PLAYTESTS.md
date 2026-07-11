@@ -5,6 +5,46 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-11 — Making room for every control
+
+- **Build:** 0.16.0 release candidate
+- **Scenario:** Inspect a completed Heartbloom save with Larger text and High
+  contrast enabled, open Settings and the Lantern Compass, then repeat the
+  narrowest pass on a clean profile in The First Warmth.
+- **Inputs:** pointer activation and accessibility-tree inspection.
+- **Viewports:** 640 × 360 for 200%-equivalent desktop reflow, plus 320 × 360
+  and 320 × 180 for 400%-equivalent reflow geometry.
+- **Coverage:** title and ending actions, modal scroll containment, fine-pointer
+  touch detection, five-item puzzle toolbar, three-mechanic status, first-room
+  guide, Compass wrapping, document width, and accessible grouping.
+
+### Observations
+
+- The initial 200% pass remained horizontally contained, but its reduced CSS
+  width activated all five touch controls despite a fine pointer. At 400%, the
+  direction pad overlapped a three-part status panel squeezed to roughly 35
+  CSS pixels.
+- Touch controls now depend on coarse-pointer capability instead of viewport
+  width. They disappear visually and from the accessibility tree during
+  fine-pointer reflow, removing five redundant tab stops.
+- Mechanic status and opening guidance now move below the canvas at 480 CSS
+  pixels or narrower. Heartbloom's source, rootsong, and tide states retained
+  their full labels at 320 pixels; the clean-profile tutorial did the same.
+- The first corrected landscape pass still clipped Focus and Map because the
+  short-height canvas was narrower than its toolbar. A full-width zoomed canvas
+  and compact toolbar now keep all five actions inside the frame.
+- The Compass card wrapped to the available 289 CSS pixels, preserved its live
+  coordinate and beam report, and introduced no horizontal document overflow.
+- Puzzle tools now appear as a named toolbar in the accessibility tree. Hidden
+  fine-pointer touch controls no longer appear as an extra generic group.
+
+### Follow-up
+
+- Repeat these states with native 200% and 400% zoom in the current/previous
+  browser matrix; this pass validated equivalent CSS reflow dimensions.
+- Run hands-on VoiceOver, NVDA, and TalkBack traversal, including the toolbar,
+  reflowed status, and Compass announcement sequence.
+
 ## 2026-07-11 — Finding a path without the canvas
 
 - **Build:** 0.15.0 release candidate
