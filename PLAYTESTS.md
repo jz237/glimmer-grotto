@@ -5,6 +5,47 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-11 — Finding a path without the canvas
+
+- **Build:** 0.15.0 release candidate
+- **Scenario:** Open a completed afterglow, request a Lantern Compass report in
+  the Heartbloom, move and refresh it with the keyboard, then revisit The First
+  Warmth and rotate its first crystal to verify that both location and beam
+  state change.
+- **Inputs:** pointer activation, C, movement keys, E, and deterministic
+  controller-button mapping.
+- **Viewports:** desktop, 390 × 844 phone portrait, and 320 × 568 narrow phone
+  with Larger text and High contrast already enabled.
+- **Coverage:** live-region output, stale-state clearing, coordinate and facing
+  changes, four-way surroundings, puzzle landmarks, inactive prerequisites,
+  boundary exits, crystal-state updates, toolbar fit, card wrapping, and
+  keyboard/pointer/controller parity.
+
+### Observations
+
+- The first report exposed Mica's coordinate and facing, all four adjacent
+  paths, the bloom, a loose glimmer, and the finale's three inactive beam
+  requirements without depending on the rendered canvas.
+- Moving removed the visible report and replaced its old live-region content
+  with an explicit refresh prompt. C immediately restored a current report.
+- In The First Warmth, the reported beam changed from the south edge at column
+  6 to the west edge at row 2 after the first crystal rotated, confirming that
+  the Compass reads live puzzle state rather than cached room copy.
+- The initial boundary wording exposed an impossible “row 8” on a seven-row
+  playfield. Edge exits now name north, east, south, or west and only report the
+  valid perpendicular coordinate.
+- All five puzzle tools fit within a 320-pixel viewport, and the full Compass
+  card wrapped without horizontal overflow at both phone sizes.
+- Parameterized checks now exercise finite, bounded descriptions for every one
+  of the 20 authored rooms.
+
+### Follow-up
+
+- Run hands-on traversal with current VoiceOver, NVDA, and TalkBack, including
+  repeated movement and interaction announcements.
+- Validate the B-button path on physical controller hardware and repeat the
+  Compass card at 200% browser zoom in the beta browser matrix.
+
 ## 2026-07-11 — Reading every path
 
 - **Build:** 0.14.0 release candidate

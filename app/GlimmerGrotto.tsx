@@ -193,6 +193,7 @@ export default function GlimmerGrotto() {
   const [biomeArrival, setBiomeArrival] = useState<BiomeArrival | null>(null);
   const [mechanicStatus, setMechanicStatus] = useState<MechanicStatusItem[]>([]);
   const [recentMemory, setRecentMemory] = useState<EchoMemory | null>(null);
+  const [roomDescription, setRoomDescription] = useState<string | null>(null);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -304,11 +305,23 @@ export default function GlimmerGrotto() {
           });
           setHintStage(0);
           setRecentMemory(null);
+          setRoomDescription(null);
           break;
         case "announce":
           setAnnouncement(event.message);
           break;
+        case "description":
+          setRoomDescription(event.message);
+          if (event.message) {
+            setAnnouncement(`Lantern compass. ${event.message}`);
+          } else {
+            setAnnouncement(
+              "Position changed. Use Compass or C for an updated room description.",
+            );
+          }
+          break;
         case "hint":
+          setRoomDescription(null);
           setHintStage(event.index);
           setAnnouncement(`Hint ${event.index}: ${event.hint}`);
           break;
@@ -333,6 +346,7 @@ export default function GlimmerGrotto() {
           setMechanicStatus(event.items);
           break;
         case "seedFound": {
+          setRoomDescription(null);
           const memory = echoMemoryForSeed(event.seedId);
           if (memory) setRecentMemory(memory);
           break;
@@ -451,6 +465,7 @@ export default function GlimmerGrotto() {
     setBiomeArrival(null);
     setMechanicStatus([]);
     setRecentMemory(null);
+    setRoomDescription(null);
     setMemoryOpen(false);
     setMapOpen(false);
     setScreen("playing");
@@ -475,6 +490,7 @@ export default function GlimmerGrotto() {
     setBiomeArrival(null);
     setMechanicStatus([]);
     setRecentMemory(null);
+    setRoomDescription(null);
     setMemoryOpen(false);
     setMapOpen(false);
     setScreen("title");
@@ -531,6 +547,7 @@ export default function GlimmerGrotto() {
 
   const revealHint = () => {
     setRecentMemory(null);
+    setRoomDescription(null);
     dispatch({ type: "hint" });
   };
 
@@ -613,6 +630,7 @@ export default function GlimmerGrotto() {
       setBiomeArrival(null);
       setMechanicStatus([]);
       setRecentMemory(null);
+      setRoomDescription(null);
       setMemoryOpen(false);
       setMapOpen(false);
       setScreen(persisted.journeyComplete ? "complete" : "title");
@@ -851,7 +869,7 @@ export default function GlimmerGrotto() {
                 tutorial ? "first-room-guide" : "",
                 mechanicStatus.length > 0 && !biomeArrival ? "puzzle-status" : "",
               ].filter(Boolean).join(" ") || undefined}
-              aria-label="Top-down light puzzle. Use arrow keys or WASD, touch controls, or a gamepad to move. Use action to interact."
+              aria-label="Top-down light puzzle. Use arrow keys or WASD, touch controls, or a gamepad to move. Use action to interact. Use Compass or C to describe the room."
             />
             {!room && (
               <div className="game-loading" role="status">
@@ -900,6 +918,14 @@ export default function GlimmerGrotto() {
                 onClick={() => dispatch({ type: "focus" })}
               >
                 <Icon>◉</Icon> Focus
+              </button>
+              <button
+                type="button"
+                disabled={!room || Boolean(biomeArrival)}
+                onClick={() => dispatch({ type: "describe" })}
+                aria-label="Describe room with Lantern compass"
+              >
+                <Icon>◎</Icon> Compass
               </button>
               <button
                 type="button"
@@ -1034,7 +1060,7 @@ export default function GlimmerGrotto() {
             </div>
           </div>
 
-          <div className="story-row">
+          <div className={`story-row ${roomDescription ? "is-compass" : ""}`}>
             <div className="story-card">
               <span className="story-glyph" aria-hidden="true">❧</span>
               <div>
@@ -1050,22 +1076,26 @@ export default function GlimmerGrotto() {
               </div>
             </div>
             <div
-              className={`hint-card ${hintStage > 0 || recentMemory ? "is-visible" : ""} ${recentMemory ? "is-memory" : ""}`}
-              aria-live="polite"
+              className={`hint-card ${hintStage > 0 || recentMemory || roomDescription ? "is-visible" : ""} ${recentMemory ? "is-memory" : ""} ${roomDescription ? "is-compass" : ""}`}
+              aria-live={roomDescription ? "off" : "polite"}
             >
               <p>
                 {recentMemory
                   ? `Echo memory · ${recentMemory.title}`
-                  : hintStage > 0
-                    ? `Lantern hint ${hintStage} of 3`
-                    : "Lantern hints"}
+                  : roomDescription
+                    ? "Lantern compass"
+                    : hintStage > 0
+                      ? `Lantern hint ${hintStage} of 3`
+                      : "Lantern hints"}
               </p>
               <span>
                 {recentMemory
                   ? recentMemory.text
-                  : hintStage > 0
-                    ? room?.hints[hintStage - 1]
-                    : "Ask only when you want a gentle nudge."}
+                  : roomDescription
+                    ? roomDescription
+                    : hintStage > 0
+                      ? room?.hints[hintStage - 1]
+                      : "Ask only when you want a gentle nudge."}
               </span>
             </div>
           </div>
@@ -1133,10 +1163,12 @@ export default function GlimmerGrotto() {
               <div><kbd>WASD</kbd><kbd>↑↓←→</kbd><span>Move one step</span></div>
               <div><kbd>Space</kbd><kbd>E</kbd><span>Turn, ring, carry, or continue</span></div>
               <div><kbd>F</kbd><span>Highlight nearby puzzle objects</span></div>
+              <div><kbd>C</kbd><span>Describe position, paths, landmarks, and beam</span></div>
               <div><kbd>H</kbd><span>Hear the next hint</span></div>
               <div><kbd>R</kbd><span>Reset the current room</span></div>
               <div><kbd>Stick</kbd><kbd>D-pad</kbd><span>Controller movement</span></div>
               <div><kbd>A</kbd><span>Controller action</span></div>
+              <div><kbd>B</kbd><span>Controller Lantern compass</span></div>
               <div><kbd>X</kbd><span>Controller focus glow</span></div>
               <div><kbd>Y</kbd><span>Controller hint</span></div>
             </div>

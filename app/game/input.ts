@@ -8,6 +8,7 @@ export interface GamepadLike {
 export interface GamepadFrame {
   direction: MoveDirection | null;
   action: boolean;
+  describe: boolean;
   focus: boolean;
   hint: boolean;
 }
@@ -43,6 +44,7 @@ export function readGamepadFrame(
   return {
     direction,
     action: pressed(gamepad, 0),
+    describe: pressed(gamepad, 1),
     focus: pressed(gamepad, 2),
     hint: pressed(gamepad, 3),
   };

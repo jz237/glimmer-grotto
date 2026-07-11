@@ -28,10 +28,12 @@ quality, performance, then cosmetic polish.
   recoverable before and after the ending through the grotto map. A late-game
   15-memory completion pass is complete; tune discovery pacing and room order
   from human playtest observations and retain the clean-profile completion gate.
-- **Beta:** the first comprehensive large-text/high-contrast interface pass is
-  complete. Content freeze, the remaining accessibility audit, current/previous
-  browser matrix, offline/update testing, performance profiling, and license
-  review remain.
+- **Beta:** the first comprehensive large-text/high-contrast interface pass and
+  the first non-visual spatial-orientation pass are complete. The Lantern
+  Compass now exposes position, paths, landmarks, objects, and beam state on
+  demand. Content freeze, hands-on screen-reader and 200% zoom audits, the
+  current/previous browser matrix, offline/update testing, performance
+  profiling, and license review remain.
 - **1.0:** zero severe defects, clean-profile completion, rollback rehearsal,
   final private release candidate, then an explicitly approved public launch.
 

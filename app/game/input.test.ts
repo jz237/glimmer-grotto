@@ -27,11 +27,12 @@ describe("controller input", () => {
     expect(readGamepadFrame(gamepad([-0.88, 0.61])).direction).toBe("left");
   });
 
-  it("maps the standard D-pad and A, X, and Y buttons", () => {
-    const frame = readGamepadFrame(gamepad([0, 0], [0, 2, 3, 15]));
+  it("maps the standard D-pad and A, B, X, and Y buttons", () => {
+    const frame = readGamepadFrame(gamepad([0, 0], [0, 1, 2, 3, 15]));
     expect(frame).toEqual({
       direction: "right",
       action: true,
+      describe: true,
       focus: true,
       hint: true,
     });

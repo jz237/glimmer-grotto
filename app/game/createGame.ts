@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { biomeArrivalForRoom } from "./biomes";
 import { ROOMS } from "./content";
+import { describeRoomPosition } from "./description";
 import type {
   AccessibilitySettings,
   BiomeArrival,
@@ -196,7 +197,13 @@ class GlimmerScene extends Phaser.Scene {
   private focusMode = false;
   private startedAt = 0;
   private gamepadRepeat = createDirectionRepeatState();
-  private gamepadButtons = { action: false, focus: false, hint: false };
+  private gamepadButtons = {
+    action: false,
+    describe: false,
+    focus: false,
+    hint: false,
+  };
+  private compassActive = false;
   private hintIndex = 0;
   private tutorialStep: TutorialStep | null = null;
   private biomeArrival: BiomeArrival | null = null;
@@ -264,6 +271,9 @@ class GlimmerScene extends Phaser.Scene {
         break;
       case "continue":
         break;
+      case "describe":
+        this.describeRoom();
+        break;
       case "hint":
         this.requestHint();
         break;
@@ -317,6 +327,7 @@ class GlimmerScene extends Phaser.Scene {
     this.moving = false;
     this.solved = false;
     this.focusMode = false;
+    this.compassActive = false;
     this.hintIndex = 0;
     this.tutorialStep =
       this.roomIndex === 0 && !this.completedRooms.has(this.room.id)
@@ -800,6 +811,7 @@ class GlimmerScene extends Phaser.Scene {
 
   private move(dx: number, dy: number): void {
     if (this.solved || this.moving) return;
+    this.clearDescription();
     this.facing = { x: Math.sign(dx), y: Math.sign(dy) };
     const next = { x: this.playerCell.x + dx, y: this.playerCell.y + dy };
     if (isBlockedCell(this.room, next)) {
@@ -880,6 +892,8 @@ class GlimmerScene extends Phaser.Scene {
       this.emitProgress();
       return;
     }
+
+    this.clearDescription();
 
     const facingCell = preferredCell ?? {
       x: this.playerCell.x + this.facing.x,
@@ -967,6 +981,7 @@ class GlimmerScene extends Phaser.Scene {
   }
 
   private resetRoom(): void {
+    this.clearDescription();
     this.puzzle = createInitialPuzzleState(this.room);
     this.playerCell = { ...this.room.start };
     this.facing = { x: 0, y: -1 };
@@ -1000,7 +1015,31 @@ class GlimmerScene extends Phaser.Scene {
     this.loadRoom(index, mode === "revisit");
   }
 
+  private describeRoom(): void {
+    this.compassActive = true;
+    this.onEvent({
+      type: "description",
+      message: describeRoomPosition(this.room, {
+        player: this.playerCell,
+        facing: this.facing,
+        puzzle: this.puzzle,
+        carrying: this.carrying,
+        moteAvailable: this.moteAvailable,
+        seedCollected: Boolean(
+          this.room.seed && this.collectedSeeds.has(this.room.seed.id),
+        ),
+      }),
+    });
+  }
+
+  private clearDescription(): void {
+    if (!this.compassActive) return;
+    this.compassActive = false;
+    this.onEvent({ type: "description", message: null });
+  }
+
   private requestHint(): void {
+    this.clearDescription();
     const index = Math.min(this.hintIndex + 1, 3) as 1 | 2 | 3;
     const hint = this.room.hints[index - 1];
     this.hintIndex = index;
@@ -1070,6 +1109,7 @@ class GlimmerScene extends Phaser.Scene {
     else if (code === "ArrowRight" || code === "KeyD") this.dispatch({ type: "move", dx: 1, dy: 0 });
     else if (code === "Space" || code === "Enter" || code === "KeyE") this.dispatch({ type: "interact" });
     else if (code === "KeyR") this.dispatch({ type: "reset" });
+    else if (code === "KeyC") this.dispatch({ type: "describe" });
     else if (code === "KeyF") this.dispatch({ type: "focus" });
     else if (code === "KeyH") this.dispatch({ type: "hint" });
   }
@@ -1098,12 +1138,23 @@ class GlimmerScene extends Phaser.Scene {
       .find((candidate): candidate is Gamepad => Boolean(candidate));
     if (!gamepad) {
       this.gamepadRepeat = createDirectionRepeatState();
-      this.gamepadButtons = { action: false, focus: false, hint: false };
+      this.gamepadButtons = {
+        action: false,
+        describe: false,
+        focus: false,
+        hint: false,
+      };
       return;
     }
 
     const frame = readGamepadFrame(gamepad);
-    if (frame.direction || frame.action || frame.focus || frame.hint) {
+    if (
+      frame.direction ||
+      frame.action ||
+      frame.describe ||
+      frame.focus ||
+      frame.hint
+    ) {
       this.setInputMethod("gamepad");
     }
     if (frame.action && !this.gamepadButtons.action) {
@@ -1112,11 +1163,15 @@ class GlimmerScene extends Phaser.Scene {
     if (frame.focus && !this.gamepadButtons.focus) {
       this.dispatch({ type: "focus" });
     }
+    if (frame.describe && !this.gamepadButtons.describe) {
+      this.dispatch({ type: "describe" });
+    }
     if (frame.hint && !this.gamepadButtons.hint) {
       this.dispatch({ type: "hint" });
     }
     this.gamepadButtons = {
       action: frame.action,
+      describe: frame.describe,
       focus: frame.focus,
       hint: frame.hint,
     };

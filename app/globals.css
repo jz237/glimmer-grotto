@@ -963,6 +963,10 @@ input:focus-visible {
   margin-top: 12px;
 }
 
+.story-row.is-compass {
+  grid-template-columns: 0.8fr 1.2fr;
+}
+
 .story-card,
 .hint-card {
   min-height: 92px;
@@ -991,6 +995,13 @@ input:focus-visible {
 }
 
 .hint-card.is-visible { opacity: 1; border-color: rgba(170, 247, 188, 0.34); }
+.hint-card.is-compass {
+  opacity: 1;
+  border-color: rgba(158, 231, 255, 0.42);
+  background: linear-gradient(145deg, rgba(14, 38, 46, 0.94), var(--panel));
+}
+.hint-card.is-compass p { color: #9ee7ff; }
+.hint-card.is-compass span { line-height: 1.6; }
 .hint-card.is-memory {
   border-color: rgba(255, 213, 139, 0.38);
   background: linear-gradient(145deg, rgba(45, 31, 31, 0.94), var(--panel));
@@ -1533,7 +1544,8 @@ kbd { min-width: 33px; padding: 5px 7px; border: 1px solid rgba(207, 255, 221, 0
   .title-art { min-height: 500px; }
   .grotto-window { width: min(80vw, 520px); }
   .title-facts { justify-content: center; }
-  .story-row { grid-template-columns: 1fr; }
+  .story-row,
+  .story-row.is-compass { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 680px) {

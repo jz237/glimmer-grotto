@@ -129,6 +129,7 @@ export type GameCommand =
   | { type: "move"; dx: -1 | 0 | 1; dy: -1 | 0 | 1 }
   | { type: "interact" }
   | { type: "continue" }
+  | { type: "describe" }
   | { type: "hint" }
   | { type: "reset" }
   | { type: "visit"; roomIndex: number }
@@ -151,6 +152,7 @@ export type GameEvent =
       isRevisit: boolean;
     }
   | { type: "announce"; message: string }
+  | { type: "description"; message: string | null }
   | { type: "hint"; index: 1 | 2 | 3; hint: string }
   | { type: "inputMethod"; method: InputMethod }
   | { type: "tutorial"; step: TutorialStep | null }

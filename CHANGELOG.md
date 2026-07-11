@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.15.0 — A compass in the dark
+
+- Added an on-demand Lantern Compass that describes Mica's grid position,
+  facing direction, all four neighboring paths, puzzle objects, the bloom,
+  optional memories and glimmers, carried light, and the current beam route.
+- Gave the Compass equal pointer, C-key, and controller-B access, documented
+  every binding in the lantern guide, and announced each report through the
+  existing live region for assistive technology.
+- Cleared spatial reports as soon as movement, interaction, reset, or hint
+  state makes them stale, replacing them with a concise prompt to request the
+  updated room description.
+- Rephrased boundary exits as named room edges, avoiding impossible coordinates
+  such as row 8 of 7 while retaining exact row or column orientation.
+- Kept the fifth puzzle tool and long description card readable at 390 × 844
+  and 320 × 568 with Larger text and High contrast enabled.
+- Verified live movement and crystal-rotation updates and added description
+  coverage for all 20 rooms, bringing the deterministic unit suite to 203
+  checks.
+
 ## 0.14.0 — Every word clear
 
 - Extended Larger text from two story fields to every fixed interface label,

@@ -18,6 +18,11 @@ five biomes. There is no combat, timer, death, or irreversible puzzle state.
 Every room offers reset, focus highlighting, and three progressively explicit
 hints. Required information is never carried by color or sound alone.
 
+The Lantern Compass provides an equivalent on-demand reading of the canvas:
+Mica's position and facing, each adjacent path or object, important landmarks,
+carried light, and the beam's current route. A report is cleared whenever the
+described state changes so it cannot quietly become stale.
+
 ## Progression
 
 - **Mosswake Entrance:** movement, mirror routing, and carried glimmer.
@@ -56,4 +61,6 @@ pre-repair copy remains available as the backup generation.
 - Larger text applies to all player-facing DOM and canvas labels. Responsive
   layouts may reflow or scroll, but must not hide a puzzle requirement or
   truncate the mechanic state needed to solve a room.
+- Canvas spatial state must remain inspectable without sight through concise,
+  current, keyboard-, pointer-, and controller-accessible descriptions.
 - Player behavior is not transmitted or analyzed.
