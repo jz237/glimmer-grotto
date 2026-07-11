@@ -34,7 +34,9 @@ quality, performance, then cosmetic polish.
   demand. The first fine-pointer reflow pass is complete at 200%- and
   400%-equivalent CSS viewports. Content freeze, hands-on screen-reader and
   native browser-zoom audits, the current/previous browser matrix,
-  offline/update testing, performance profiling, and license review remain.
+  installed-device PWA testing, performance profiling, and license review
+  remain. The automated first-install, disconnected-shell, cache-integrity,
+  and explicit-update pass is complete against the real production asset graph.
 - **1.0:** zero severe defects, clean-profile completion, rollback rehearsal,
   final private release candidate, then an explicitly approved public launch.
 

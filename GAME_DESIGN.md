@@ -66,4 +66,8 @@ pre-repair copy remains available as the backup generation.
 - Narrow fine-pointer reflow must preserve every puzzle tool and move guidance
   or mechanic state below the canvas when an overlay can no longer remain
   legible. Viewport width alone must never activate redundant touch controls.
+- After one successful production load, the complete game—including its lazy
+  engine—must remain available offline. Authentication or error pages must
+  never replace the last valid cached shell, and progress continues to save on
+  the device while disconnected.
 - Player behavior is not transmitted or analyzed.

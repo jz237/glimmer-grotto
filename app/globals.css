@@ -217,6 +217,15 @@ input:focus-visible {
   cursor: pointer;
 }
 
+.connection-banner {
+  border-color: rgba(158, 231, 255, 0.38);
+  background: rgba(158, 231, 255, 0.07);
+  color: #cceff7;
+}
+
+.connection-banner > span:first-child { color: #9ee7ff; }
+.connection-banner strong { color: white; }
+
 .icon-button,
 .quiet-button {
   display: inline-flex;

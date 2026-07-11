@@ -200,6 +200,7 @@ export default function GlimmerGrotto() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const [installPrompt, setInstallPrompt] =
     useState<InstallPromptEvent | null>(null);
   const [storageNote, setStorageNote] = useState("");
@@ -233,11 +234,15 @@ export default function GlimmerGrotto() {
         }
       });
     };
-    const productionHost =
-      location.protocol === "https:" &&
-      location.hostname !== "localhost" &&
-      location.hostname !== "127.0.0.1";
-    if (productionHost && "serviceWorker" in navigator) {
+    const localhost =
+      location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    const productionHost = location.protocol === "https:" && !localhost;
+    const localProductionBuild =
+      process.env.NODE_ENV === "production" && localhost;
+    if (
+      (productionHost || localProductionBuild) &&
+      "serviceWorker" in navigator
+    ) {
       void navigator.serviceWorker
         .register("/sw.js")
         .then((value) => {
@@ -258,6 +263,30 @@ export default function GlimmerGrotto() {
       cancelled = true;
       registration?.removeEventListener("updatefound", updateFound);
       window.removeEventListener("beforeinstallprompt", captureInstallPrompt);
+    };
+  }, []);
+
+  useEffect(() => {
+    const offline = () => {
+      setIsOffline(true);
+      setAnnouncement("Offline. Your journey still saves on this device.");
+    };
+    const online = () => {
+      setIsOffline(false);
+      setAnnouncement("Back online. Checking for a fresh grotto.");
+      if ("serviceWorker" in navigator) {
+        void navigator.serviceWorker
+          .getRegistration()
+          .then((registration) => registration?.update())
+          .catch(() => undefined);
+      }
+    };
+    if (!navigator.onLine) offline();
+    window.addEventListener("offline", offline);
+    window.addEventListener("online", online);
+    return () => {
+      window.removeEventListener("offline", offline);
+      window.removeEventListener("online", online);
     };
   }, []);
 
@@ -738,6 +767,15 @@ export default function GlimmerGrotto() {
           </button>
         </div>
       </header>
+
+      {isOffline && (
+        <aside className="save-recovery-banner connection-banner" role="status">
+          <Icon>⌁</Icon>
+          <span>
+            <strong>Offline</strong> · your journey still saves on this device.
+          </span>
+        </aside>
+      )}
 
       {saveRecoveryNotice && screen !== "playing" && (
         <aside className="save-recovery-banner" role="status">

@@ -5,6 +5,51 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-11 — Keeping the lantern lit offline
+
+- **Build:** 0.17.0 release candidate
+- **Scenario:** Install from a fresh generated production shell, sever every
+  network response, reload the root route, and request the lazy game engine;
+  then repeat refreshes with successful sign-in HTML in place of the shell and
+  a script.
+- **Inputs:** deterministic install, fetch, message, and activation events
+  against both synthetic fixtures and the real hashed production build.
+- **Viewport:** runtime-independent worker pass; visible offline status retains
+  the same responsive banner treatment as save recovery.
+- **Coverage:** first-install app shell, module-preload discovery, recursive
+  dynamic imports, CSS dependencies, manifest and icons, disconnected
+  navigation, lazy Phaser startup, MIME validation, authentication cache
+  poisoning, explicit skip-waiting, cache cleanup scope, and client claiming.
+
+### Observations
+
+- The old install cached only root HTML, the manifest, and icons. Because the
+  first page loaded before its new worker controlled it, none of the hashed CSS
+  or JavaScript was guaranteed to enter the cache before connectivity vanished.
+- Caching the files named in HTML was still incomplete: the 1.4 MB Phaser engine
+  is loaded dynamically only when play begins and is absent from the initial
+  module-preload list. Recursive import discovery now includes it on install.
+- Owner authentication can return a sign-in document with a successful status.
+  Status-only checks could therefore overwrite a game script or the offline
+  root with HTML. Shell identity and destination-specific MIME checks now reject
+  those responses while still showing the live sign-in page when online.
+- With all production asset requests changed to network failures, the cached
+  root and complete lazy engine remained readable. Every generated client CSS
+  and JavaScript asset was present in the first-install cache.
+- Activation deleted only older Glimmer Grotto caches, preserved unrelated app
+  caches, claimed open clients, and still required the explicit update message
+  before a waiting worker skipped ahead.
+- The interface now names offline mode and reassures players that their journey
+  continues to save locally; reconnection immediately checks for an update.
+
+### Follow-up
+
+- Repeat installation, airplane-mode launch, and update acceptance on physical
+  iOS, Android, Windows, and macOS devices in the current/previous browser
+  matrix.
+- Exercise an interrupted update and storage-pressure eviction on installed
+  PWAs, then rehearse rollback from the final private release candidate.
+
 ## 2026-07-11 — Making room for every control
 
 - **Build:** 0.16.0 release candidate

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.17.0 — The lantern stays lit
+
+- Rebuilt first-install caching around the generated production shell instead
+  of a short hard-coded file list, then recursively followed static and dynamic
+  JavaScript and CSS dependencies.
+- Included the lazy Phaser game engine in the initial offline cache, so entering
+  the grotto no longer requires a second online visit after installation.
+- Validated the game shell and every cached resource by content type, preventing
+  successful owner sign-in pages from replacing cached HTML, scripts, styles,
+  images, fonts, the manifest, or icons.
+- Preserved network-first navigation without allowing an expired session to
+  poison the last safe offline shell, while retaining explicit update approval
+  and scoped old-cache cleanup.
+- Added a visible, screen-reader-announced Offline notice that confirms local
+  saves remain safe and checks for a fresh worker when connectivity returns.
+- Enabled service-worker registration in local production builds and added six
+  deterministic worker checks, including the real hashed build graph and a
+  fully disconnected lazy-engine load.
+
 ## 0.16.0 — Room to breathe
 
 - Stopped narrow fine-pointer layouts from enabling five redundant touch

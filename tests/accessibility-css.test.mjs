@@ -45,3 +45,17 @@ test("fine-pointer zoom reflows guidance without enabling touch overlays", () =>
   assert.match(interfaceSource, /role="toolbar" aria-label="Puzzle tools"/);
   assert.match(interfaceSource, /role="group" aria-label="Touch controls"/);
 });
+
+test("offline state is visible and announced without hiding local save safety", () => {
+  assert.match(interfaceSource, /window\.addEventListener\("offline", offline\)/);
+  assert.match(interfaceSource, /window\.addEventListener\("online", online\)/);
+  assert.match(
+    interfaceSource,
+    /className="save-recovery-banner connection-banner" role="status"/,
+  );
+  assert.match(
+    interfaceSource,
+    /Offline<\/strong> · your journey still saves on this device\./,
+  );
+  assert.match(css, /\.connection-banner\s*\{[^}]*border-color:[^}]*background:/s);
+});
