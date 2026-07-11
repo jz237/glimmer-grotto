@@ -118,5 +118,8 @@ test("ships the PWA files and removes the disposable starter", async () => {
   assert.match(gameBundle, /webglcontextrestored/);
   assert.match(gameBundle, /rendererState/);
   assert.match(gameBundle, /rendererMode/);
+  if (process.env.GLIMMER_RESTRICTED_BUILD !== "1") {
+    await access(new URL("dist/server/wrangler.json", root));
+  }
   await assert.rejects(access(new URL("../app/_sites-preview/SkeletonPreview.tsx", root)));
 });

@@ -25,7 +25,9 @@ Use this path only after an explicit public-launch request.
 2. Commit the reviewed state and push that exact commit to the Sites source
    repository.
 3. Package the clean `dist` output with `.openai/hosting.json`; reject missing
-   server entrypoints, missing release evidence, or retained unreferenced fonts.
+   server entrypoints, missing `dist/server/wrangler.json`, missing release
+   evidence, or retained unreferenced fonts. Never package a restricted fallback
+   build for Sites.
 4. Save a Sites version using the pushed commit SHA and its exact archive.
 5. Verify custom access still allows exactly the owner and no groups, then use
    the owner-only deployment path.
