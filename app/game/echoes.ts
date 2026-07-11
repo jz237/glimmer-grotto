@@ -26,7 +26,7 @@ export const ECHO_MEMORIES: readonly EchoMemory[] = [
   {
     seedId: "moss-01-seed",
     roomId: "moss-01",
-    roomName: "The First Bend",
+    roomName: "The First Warmth",
     biome: "mosswake",
     biomeName: "Mosswake Entrance",
     title: "The First Lantern",
@@ -44,7 +44,7 @@ export const ECHO_MEMORIES: readonly EchoMemory[] = [
   {
     seedId: "moss-03-seed",
     roomId: "moss-03",
-    roomName: "Stone Ladder",
+    roomName: "Fernway",
     biome: "mosswake",
     biomeName: "Mosswake Entrance",
     title: "Stone Takes Its Time",

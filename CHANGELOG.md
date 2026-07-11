@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.11.0 — Paths remembered
+
+- Added a complete grotto map that distinguishes restored rooms, the current
+  path, and still-sleeping chambers across all five biomes.
+- Made every restored room replayable, so a missed echo seed can always be
+  recovered without restarting the journey.
+- Preserved one explicit campaign frontier through seed collection, replayed
+  room completion, map travel, title returns, and normal continuation. Replay
+  can no longer move save progress backward.
+- Marked each mapped room's memory as found, waiting, or absent; the map draws
+  attention to recoverable memories without unlocking future rooms.
+- Added revisit copy in the room story and restoration screen, automatic return
+  to the deeper path after a replayed solve, and an anytime Map control for
+  keyboard, pointer, touch, and assistive-technology users.
+- Verified missed-memory recovery and both return paths at desktop and
+  667 × 375 phone-landscape sizes, bringing the deterministic suite to 169
+  checks.
+
 ## 0.10.0 — Echoes kept
 
 - Turned all 15 optional echo seeds into an original narrative collection

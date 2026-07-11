@@ -5,6 +5,41 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-10 — Returning for a missed light
+
+- **Build:** 0.11.0 release candidate
+- **Scenario:** Resume at Rootsong with nine restored rooms, revisit The First
+  Warmth, recover its missed memory, return to Rootsong through the map, verify
+  a title round trip, then replay and solve the old room once more.
+- **Inputs:** pointer activation, keyboard movement/action, Space, and Escape.
+- **Viewports:** 1280 × 720 desktop and 667 × 375 phone landscape.
+- **Coverage:** all 20 map entries, restored/current/locked states, found/waiting
+  memory states, revisit entry, seed persistence, map return, solved-room return,
+  title resume, focus return, and progress-frontier preservation.
+
+### Observations
+
+- The map correctly exposed rooms 1–9, kept room 10 as the current path, and
+  left rooms 11–20 locked. Only The First Warmth showed a recoverable missing
+  memory among the restored rooms.
+- Collecting that seed changed 9/15 to 10/15 while campaign progress remained
+  9/20. The new “First Lantern” memory appeared immediately in the room card.
+- Returning through the map restored Rootsong with its puzzle freshly reset.
+  Returning to the title and resuming also reopened Rootsong at 9/20 and 10/15.
+- Solving the replayed room produced revisit-specific continuation copy and
+  Space returned directly to Rootsong. That covered all three runtime progress
+  writes without a regression.
+- The phone map remained a single-column, internally scrolling dialog with its
+  summary, close control, room status, and memory state visible without
+  horizontal overflow.
+
+### Follow-up
+
+- Use the now-safe replay route to complete a clean-profile 15-memory run and
+  review the collection's full narrative cadence.
+- Observe whether players understand “Memory waiting” without opening the
+  journal first, and soften or expand the label only if needed.
+
 ## 2026-07-10 — Recovering the keeper stories
 
 - **Build:** 0.10.0 release candidate

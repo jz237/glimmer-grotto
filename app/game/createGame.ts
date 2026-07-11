@@ -22,6 +22,7 @@ import {
 } from "./input";
 import { mothPose } from "./motion";
 import { interactionTargetAt, isBlockedCell } from "./navigation";
+import { frontierAfterSolve, roomVisitMode } from "./journey";
 import {
   createInitialPuzzleState,
   ringBell,
@@ -178,6 +179,8 @@ class GlimmerScene extends Phaser.Scene {
   private readonly audio: AudioGarden;
   private settings: AccessibilitySettings;
   private roomIndex: number;
+  private frontierRoomIndex: number;
+  private isRevisit = false;
   private room!: RoomDefinition;
   private puzzle!: PuzzleState;
   private playerCell!: Cell;
@@ -206,6 +209,7 @@ class GlimmerScene extends Phaser.Scene {
   }) {
     super({ key: "GlimmerGrotto" });
     this.roomIndex = options.roomIndex;
+    this.frontierRoomIndex = options.roomIndex;
     this.completedRooms = new Set(options.completedRooms);
     this.collectedSeeds = new Set(options.collectedSeeds);
     this.seenBiomes = new Set(options.seenBiomes);
@@ -262,6 +266,9 @@ class GlimmerScene extends Phaser.Scene {
       case "reset":
         this.resetRoom();
         break;
+      case "visit":
+        this.visitRoom(command.roomIndex);
+        break;
       case "focus":
         this.focusMode = !this.focusMode;
         this.drawRoom();
@@ -294,8 +301,9 @@ class GlimmerScene extends Phaser.Scene {
     this.audio.destroy();
   }
 
-  private loadRoom(index: number): void {
+  private loadRoom(index: number, isRevisit = false): void {
     this.roomIndex = Phaser.Math.Clamp(index, 0, ROOMS.length - 1);
+    this.isRevisit = isRevisit;
     this.room = ROOMS[this.roomIndex];
     this.puzzle = createInitialPuzzleState(this.room);
     this.playerCell = { ...this.room.start };
@@ -311,9 +319,10 @@ class GlimmerScene extends Phaser.Scene {
         ? "move"
         : null;
     const arrival = biomeArrivalForRoom(ROOMS, this.roomIndex);
-    this.biomeArrival = arrival && !this.seenBiomes.has(arrival.biome)
-      ? arrival
-      : null;
+    this.biomeArrival =
+      !this.isRevisit && arrival && !this.seenBiomes.has(arrival.biome)
+        ? arrival
+        : null;
     this.drawRoom();
     this.onEvent({
       type: "room",
@@ -324,6 +333,7 @@ class GlimmerScene extends Phaser.Scene {
       subtitle: this.room.subtitle,
       story: this.room.story,
       hints: this.room.hints,
+      isRevisit: this.isRevisit,
     });
     this.onEvent({ type: "tutorial", step: this.tutorialStep });
     this.onEvent({ type: "biomeArrival", arrival: this.biomeArrival });
@@ -335,6 +345,8 @@ class GlimmerScene extends Phaser.Scene {
       this.announce(
         `${this.biomeArrival.name}. ${this.biomeArrival.title} ${this.biomeArrival.story}`,
       );
+    } else if (this.isRevisit) {
+      this.announce(`Revisiting ${this.room.name}. Your deeper path stays saved.`);
     } else {
       this.announce(`${this.room.name}. ${this.room.subtitle}`);
     }
@@ -349,9 +361,18 @@ class GlimmerScene extends Phaser.Scene {
       this.solved = true;
       this.completedRooms.add(this.room.id);
       this.setTutorialStep(null);
-      this.emitProgress(Math.min(this.roomIndex + 1, ROOMS.length - 1));
+      this.frontierRoomIndex = frontierAfterSolve(
+        this.roomIndex,
+        this.frontierRoomIndex,
+        this.isRevisit,
+      );
+      this.emitProgress();
       this.audio.solve();
-      this.announce("The room is restored. Press action to continue deeper.");
+      this.announce(
+        this.isRevisit
+          ? "The room shines again. Press action to return to your deeper path."
+          : "The room is restored. Press action to continue deeper.",
+      );
     }
 
     this.cameras.main.setBackgroundColor(cssHex(palette.background));
@@ -698,9 +719,11 @@ class GlimmerScene extends Phaser.Scene {
       .text(
         WIDTH / 2,
         HEIGHT / 2 + 24,
-        this.roomIndex === ROOMS.length - 1
-          ? "Press action to wake the Heartbloom"
-          : "Press action to continue deeper",
+        this.isRevisit
+          ? "Press action to return to your deeper path"
+          : this.roomIndex === ROOMS.length - 1
+            ? "Press action to wake the Heartbloom"
+            : "Press action to continue deeper",
         {
           color: "#e9f3ef",
           fontFamily: "system-ui, sans-serif",
@@ -820,7 +843,7 @@ class GlimmerScene extends Phaser.Scene {
       this.collectedSeeds.add(seedId);
       this.audio.collect();
       this.onEvent({ type: "seedFound", seedId });
-      this.emitProgress(this.roomIndex);
+      this.emitProgress();
       this.drawRoom();
       this.pulseAt(this.playerCell, this.room.palette.beam);
     }
@@ -832,12 +855,17 @@ class GlimmerScene extends Phaser.Scene {
       return;
     }
     if (this.solved) {
+      if (this.isRevisit) {
+        this.loadRoom(this.frontierRoomIndex);
+        this.emitProgress();
+        return;
+      }
       if (this.roomIndex >= ROOMS.length - 1) {
         this.onEvent({ type: "journeyComplete" });
         return;
       }
       this.loadRoom(this.roomIndex + 1);
-      this.emitProgress(this.roomIndex);
+      this.emitProgress();
       return;
     }
 
@@ -947,6 +975,19 @@ class GlimmerScene extends Phaser.Scene {
     this.announce("The room settles back to its starting pattern.");
   }
 
+  private visitRoom(index: number): void {
+    const mode = roomVisitMode(
+      index,
+      this.frontierRoomIndex,
+      [...this.completedRooms],
+    );
+    if (!mode) {
+      this.announce("That chamber is still sleeping farther down the path.");
+      return;
+    }
+    this.loadRoom(index, mode === "revisit");
+  }
+
   private requestHint(): void {
     const index = Math.min(this.hintIndex + 1, 3) as 1 | 2 | 3;
     const hint = this.room.hints[index - 1];
@@ -978,10 +1019,10 @@ class GlimmerScene extends Phaser.Scene {
     }
   }
 
-  private emitProgress(currentRoom: number): void {
+  private emitProgress(): void {
     this.onEvent({
       type: "progress",
-      currentRoom,
+      currentRoom: this.frontierRoomIndex,
       completedRooms: [...this.completedRooms],
       collectedSeeds: [...this.collectedSeeds],
     });
@@ -1127,7 +1168,9 @@ export function mountGame(options: MountOptions): GameHandle {
 
   return {
     dispatch(command) {
-      if (scene.sys?.isActive()) scene.dispatch(command);
+      if (scene.sys?.isActive() || command.type === "visit") {
+        scene.dispatch(command);
+      }
     },
     pause() {
       if (scene.sys?.isActive()) scene.dispatch({ type: "pause" });

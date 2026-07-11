@@ -131,6 +131,7 @@ export type GameCommand =
   | { type: "continue" }
   | { type: "hint" }
   | { type: "reset" }
+  | { type: "visit"; roomIndex: number }
   | { type: "focus" }
   | { type: "pause" }
   | { type: "resume" }
@@ -147,6 +148,7 @@ export type GameEvent =
       subtitle: string;
       story: string;
       hints: [string, string, string];
+      isRevisit: boolean;
     }
   | { type: "announce"; message: string }
   | { type: "hint"; index: 1 | 2 | 3; hint: string }

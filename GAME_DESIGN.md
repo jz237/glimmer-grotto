@@ -31,6 +31,11 @@ seeds reveal an ordered journal of stories left by the grotto's old keepers;
 missing entries never expose their title. The ending records completion locally
 and allows a fresh journey without an account.
 
+Restored rooms remain available from the grotto map. Replaying a room resets
+only its local puzzle, never the deepest unlocked chamber, restored-room set, or
+collected memories. Optional discoveries are therefore never permanently
+missable within a journey.
+
 ## Experience rules
 
 - New mechanics receive a safe teaching room before combination puzzles.

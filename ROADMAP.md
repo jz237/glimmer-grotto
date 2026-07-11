@@ -17,13 +17,15 @@ quality, performance, then cosmetic polish.
   dialog accessibility, restart safety, save reconciliation, PWA update safety,
   recorded room traces, opening-room guidance, and the first controller-tuning
   and animation-feedback passes are complete. Persistent special-mechanic
-  feedback and the first cross-biome rootsong usability pass are also complete.
-  Structured human playthroughs remain.
+  feedback, the first cross-biome rootsong usability pass, and safe room replay
+  with a non-regressing campaign frontier are also complete. Structured human
+  playthroughs remain.
 - **Alpha:** full navigation/action traces and the automated pacing curve are
   complete, alongside the first biome-identity, narrative-transition, and
   non-audio mechanic-comprehension passes. The first room-to-room story-echo
-  pass is complete through the seed-memory journal; tune its discovery pacing
-  and room order from human playtest observations.
+  pass is complete through the seed-memory journal, and missed memories are now
+  recoverable through the grotto map. Tune discovery pacing and room order from
+  human playtest observations.
 - **Beta:** content freeze, accessibility audit, current/previous browser matrix,
   offline/update testing, performance profiling, and license review.
 - **1.0:** zero severe defects, clean-profile completion, rollback rehearsal,

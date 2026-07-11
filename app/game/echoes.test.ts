@@ -17,6 +17,9 @@ describe("echo memories", () => {
     expect(ECHO_MEMORIES.map((memory) => memory.roomId)).toEqual(
       seededRooms.map((room) => room.id),
     );
+    expect(ECHO_MEMORIES.map((memory) => memory.roomName)).toEqual(
+      seededRooms.map((room) => room.name),
+    );
   });
 
   it("keeps every memory distinct and substantial", () => {

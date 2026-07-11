@@ -27,6 +27,7 @@ import {
   echoMemoryGroups,
   type EchoMemory,
 } from "./game/echoes";
+import { journeyMapGroups } from "./game/journey";
 import {
   clearSave,
   createFreshSave,
@@ -63,6 +64,7 @@ interface RoomInfo {
   subtitle: string;
   story: string;
   hints: [string, string, string];
+  isRevisit: boolean;
 }
 
 interface InstallPromptEvent extends Event {
@@ -176,6 +178,7 @@ export default function GlimmerGrotto() {
   const [mechanicStatus, setMechanicStatus] = useState<MechanicStatusItem[]>([]);
   const [recentMemory, setRecentMemory] = useState<EchoMemory | null>(null);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
@@ -282,6 +285,7 @@ export default function GlimmerGrotto() {
             subtitle: event.subtitle,
             story: event.story,
             hints: event.hints,
+            isRevisit: event.isRevisit,
           });
           setHintStage(0);
           setRecentMemory(null);
@@ -373,13 +377,13 @@ export default function GlimmerGrotto() {
     if (screen !== "playing") return;
     const onVisibility = () => {
       if (document.hidden) gameRef.current?.pause();
-      else if (!settingsOpen && !helpOpen && !restartOpen && !memoryOpen) {
+      else if (!settingsOpen && !helpOpen && !restartOpen && !memoryOpen && !mapOpen) {
         gameRef.current?.resume();
       }
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [helpOpen, memoryOpen, restartOpen, screen, settingsOpen]);
+  }, [helpOpen, mapOpen, memoryOpen, restartOpen, screen, settingsOpen]);
 
   useEffect(() => {
     if (screen !== "playing") return;
@@ -432,6 +436,7 @@ export default function GlimmerGrotto() {
     setMechanicStatus([]);
     setRecentMemory(null);
     setMemoryOpen(false);
+    setMapOpen(false);
     setScreen("playing");
     setSession((value) => value + 1);
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -459,6 +464,7 @@ export default function GlimmerGrotto() {
     setMechanicStatus([]);
     setRecentMemory(null);
     setMemoryOpen(false);
+    setMapOpen(false);
     setScreen("title");
     setAnnouncement("Journey saved. Back at the grotto entrance.");
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -526,6 +532,25 @@ export default function GlimmerGrotto() {
     if (screen === "playing") gameRef.current?.resume();
   }, [screen]);
 
+  const openMap = useCallback(() => {
+    gameRef.current?.pause();
+    setMapOpen(true);
+  }, []);
+
+  const closeMap = useCallback(() => {
+    setMapOpen(false);
+    gameRef.current?.resume();
+  }, []);
+
+  const visitMapRoom = useCallback(
+    (roomIndex: number) => {
+      setMapOpen(false);
+      dispatch({ type: "visit", roomIndex });
+      gameRef.current?.resume();
+    },
+    [dispatch],
+  );
+
   const install = async () => {
     if (!installPrompt) return;
     await installPrompt.prompt();
@@ -580,6 +605,7 @@ export default function GlimmerGrotto() {
       setMechanicStatus([]);
       setRecentMemory(null);
       setMemoryOpen(false);
+      setMapOpen(false);
       setScreen(persisted.journeyComplete ? "complete" : "title");
       setSession((value) => value + 1);
       setStorageNote("Save imported. Close settings to continue.");
@@ -594,6 +620,11 @@ export default function GlimmerGrotto() {
   const seeds = collectedMemoryCount(collectedSeedIds);
   const memoryGroups = echoMemoryGroups(collectedSeedIds);
   const memoriesComplete = seeds === ECHO_MEMORIES.length;
+  const mapGroups = journeyMapGroups(
+    save?.completedRooms ?? [],
+    collectedSeedIds,
+    save?.currentRoom ?? 0,
+  );
   const hasProgress = completed > 0 || (save?.currentRoom ?? 0) > 0;
   const tutorial = tutorialStep
     ? {
@@ -746,7 +777,11 @@ export default function GlimmerGrotto() {
         <section className="play-screen" aria-label="Glimmer Grotto game">
           <div className="play-heading">
             <div>
-              <p className="eyebrow">{room?.biomeName ?? "Entering the grotto"}</p>
+              <p className="eyebrow">
+                {room?.isRevisit
+                  ? `Revisiting · ${room.biomeName}`
+                  : room?.biomeName ?? "Entering the grotto"}
+              </p>
               <h1>{room?.name ?? "Following the first glimmer…"}</h1>
             </div>
             <div className="journey-counters" aria-label="Journey progress">
@@ -838,6 +873,13 @@ export default function GlimmerGrotto() {
                 onClick={() => dispatch({ type: "reset" })}
               >
                 <Icon>↺</Icon> Reset
+              </button>
+              <button
+                type="button"
+                disabled={!room || Boolean(biomeArrival)}
+                onClick={openMap}
+              >
+                <Icon>⌖</Icon> Map
               </button>
             </div>
             {mechanicStatus.length > 0 && !biomeArrival && (
@@ -957,6 +999,11 @@ export default function GlimmerGrotto() {
               <div>
                 <p>{room?.subtitle}</p>
                 <span>{room?.story}</span>
+                {room?.isRevisit && (
+                  <small className="revisit-note">
+                    Revisiting a restored room · your deeper path remains saved.
+                  </small>
+                )}
               </div>
             </div>
             <div
@@ -1155,6 +1202,90 @@ export default function GlimmerGrotto() {
                       </div>
                     </li>
                   ))}
+                </ol>
+              </section>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {mapOpen && (
+        <Modal labelledBy="map-title" className="map-panel" onClose={closeMap}>
+          <button
+            type="button"
+            className="modal-close"
+            onClick={closeMap}
+            aria-label="Close grotto map"
+            autoFocus
+          >
+            ×
+          </button>
+          <p className="eyebrow">Every path stays lit</p>
+          <h2 id="map-title">Grotto map</h2>
+          <div className="map-summary">
+            <span aria-hidden="true">⌖</span>
+            <div>
+              <strong>{completed} of {totalRooms} rooms restored</strong>
+              <p>
+                Revisit restored rooms for missed memories. Changing rooms resets
+                only the puzzle you leave; your deeper path stays saved.
+              </p>
+            </div>
+          </div>
+          <div className="map-groups">
+            {mapGroups.map((group) => (
+              <section
+                key={group.biome}
+                className={`map-group map-group--${group.biome}`}
+                aria-labelledby={`map-biome-${group.biome}`}
+              >
+                <div className="map-group__heading">
+                  <h3 id={`map-biome-${group.biome}`}>{group.biomeName}</h3>
+                  <span>{group.restored} / {group.entries.length} restored</span>
+                </div>
+                <ol className="map-room-list" role="list">
+                  {group.entries.map((entry) => {
+                    const isHere = room?.index === entry.index;
+                    const statusText = isHere
+                      ? "You are here"
+                      : entry.status === "current"
+                        ? room?.isRevisit
+                          ? "Return to path"
+                          : "Continue deeper"
+                        : entry.status === "restored"
+                          ? "Revisit room"
+                          : "Still sleeping";
+                    const memoryText = entry.memoryStatus === "found"
+                      ? "Memory found"
+                      : entry.memoryStatus === "waiting"
+                        ? "Memory waiting"
+                        : "";
+                    const disabled = entry.status === "locked" || isHere;
+                    return (
+                      <li key={entry.id} role="listitem">
+                        <button
+                          type="button"
+                          className={`map-room map-room--${entry.status} ${entry.memoryStatus === "waiting" ? "has-memory-waiting" : ""}`}
+                          disabled={disabled}
+                          onClick={() => visitMapRoom(entry.index)}
+                          aria-label={`${entry.name}. ${statusText}${memoryText ? `. ${memoryText}` : ""}`}
+                        >
+                          <span className="map-room__number" aria-hidden="true">
+                            {String(entry.index + 1).padStart(2, "0")}
+                          </span>
+                          <span className="map-room__copy">
+                            <strong>{entry.name}</strong>
+                            <small>{statusText}</small>
+                          </span>
+                          {memoryText && (
+                            <span className={`map-room__memory is-${entry.memoryStatus}`}>
+                              <span aria-hidden="true">✧</span> {memoryText}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ol>
               </section>
             ))}
