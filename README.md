@@ -50,4 +50,5 @@ ending, and playable afterglow, then compares the result with the deployed
   `/release/clean-profile-certificate.json` and remains available offline.
 
 See [GAME_DESIGN.md](./GAME_DESIGN.md) for the product rules and
-[ROADMAP.md](./ROADMAP.md) for the autonomous improvement cadence.
+[ROADMAP.md](./ROADMAP.md) for the autonomous improvement cadence. Private
+release and rollback evidence follows [RELEASE_RUNBOOK.md](./RELEASE_RUNBOOK.md).

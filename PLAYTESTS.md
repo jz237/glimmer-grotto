@@ -5,6 +5,45 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-11 — Rolling the light safely backward
+
+- **Build:** Sites version 17 / 0.20.0, rolled back to version 16 / 0.19.0 and
+  restored to version 17
+- **Scenario:** Republish the immediately prior owner-only production artifact,
+  verify its identity from uncached edge responses, restore the certified
+  release, and reverify source bytes and access policy.
+- **Inputs:** private Sites deployment controls and direct authenticated HTTP
+  artifact probes; no public access or player save mutation.
+- **Viewport:** deployment-level pass, independent of interface geometry.
+- **Coverage:** saved-version provenance, both terminal deployment states, both
+  service-worker generations, both notice versions, current interface SHA-256,
+  current completion certificate, production URL, and owner allowlist.
+
+### Observations
+
+- Version 16 resolved to commit `58df17a` and the 0.19.0 archive; version 17
+  resolved to commit `051082d` and the 0.20.0 certified archive before either
+  deployment began.
+- The rollback control plane reached success before production edge responses
+  changed. The first probe still returned v14 and 0.20.0; continued uncached
+  probes then converged on v13 and 0.19.0 with v14 absent. A terminal deployment
+  state alone is therefore not sufficient rollback evidence.
+- Restoration showed the same propagation window: the current hashed interface
+  was briefly absent after the publish job succeeded. Final probes matched its
+  local SHA-256 exactly, returned v14 and 0.20.0, and returned the clean-profile
+  certificate byte for byte with its 20-room afterglow result intact.
+- Both deploy operations used the owner-only path. After restoration, access
+  remained custom at revision 1 with one allowed user and zero allowed groups.
+- Both artifacts use save schema 1, so the drill did not cross a migration
+  boundary. The deployment itself did not read or write browser-local progress.
+
+### Follow-up
+
+- Repeat the drill for the final private release candidate, using the runbook's
+  edge-convergence checks rather than control-plane status alone.
+- Add interrupted-deployment and storage-pressure recovery to the physical
+  installed-PWA matrix.
+
 ## 2026-07-11 — From first spark to afterglow
 
 - **Build:** 0.20.0 release candidate

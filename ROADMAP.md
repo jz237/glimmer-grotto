@@ -43,9 +43,10 @@ quality, performance, then cosmetic polish.
   and shipped-artifact license passes are complete against the real production
   graph. Third-party notices are player-visible, available offline, and guarded
   against dependency, license-text, and generated-asset drift.
-- **1.0:** clean-profile completion is certified and published with the release.
-  Zero-severe-defect review, rollback rehearsal, final private release
-  candidate, then an explicitly approved public launch remain.
+- **1.0:** clean-profile completion is certified and published with the release,
+  and the private version rollback/restore path has been rehearsed against live
+  edge bytes. Zero-severe-defect review, final private release candidate, then
+  an explicitly approved public launch remain.
 
 ## Guardrails
 
