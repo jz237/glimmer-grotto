@@ -816,9 +816,10 @@ class GlimmerScene extends Phaser.Scene {
       sameCell(this.playerCell, this.room.seed) &&
       !this.collectedSeeds.has(this.room.seed.id)
     ) {
-      this.collectedSeeds.add(this.room.seed.id);
+      const seedId = this.room.seed.id;
+      this.collectedSeeds.add(seedId);
       this.audio.collect();
-      this.announce("Echo seed found. Its memory joins the lantern.");
+      this.onEvent({ type: "seedFound", seedId });
       this.emitProgress(this.roomIndex);
       this.drawRoom();
       this.pulseAt(this.playerCell, this.room.palette.beam);

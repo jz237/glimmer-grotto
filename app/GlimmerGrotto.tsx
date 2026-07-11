@@ -21,6 +21,13 @@ import type {
   TutorialStep,
 } from "./game/contracts";
 import {
+  ECHO_MEMORIES,
+  collectedMemoryCount,
+  echoMemoryForSeed,
+  echoMemoryGroups,
+  type EchoMemory,
+} from "./game/echoes";
+import {
   clearSave,
   createFreshSave,
   exportSave,
@@ -105,6 +112,8 @@ function Modal({
     const dialog = dialogRef.current;
     if (!dialog) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const handleCancel = (event: Event) => {
       event.preventDefault();
       onClose();
@@ -124,6 +133,7 @@ function Modal({
       dialog.removeEventListener("cancel", handleCancel);
       dialog.removeEventListener("keydown", handleKeyDown);
       if (dialog.open) dialog.close();
+      document.body.style.overflow = previousBodyOverflow;
       previouslyFocused?.focus();
     };
   }, [onClose]);
@@ -164,6 +174,8 @@ export default function GlimmerGrotto() {
   const [tutorialStep, setTutorialStep] = useState<TutorialStep | null>(null);
   const [biomeArrival, setBiomeArrival] = useState<BiomeArrival | null>(null);
   const [mechanicStatus, setMechanicStatus] = useState<MechanicStatusItem[]>([]);
+  const [recentMemory, setRecentMemory] = useState<EchoMemory | null>(null);
+  const [memoryOpen, setMemoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
@@ -272,6 +284,7 @@ export default function GlimmerGrotto() {
             hints: event.hints,
           });
           setHintStage(0);
+          setRecentMemory(null);
           break;
         case "announce":
           setAnnouncement(event.message);
@@ -300,6 +313,11 @@ export default function GlimmerGrotto() {
         case "mechanicStatus":
           setMechanicStatus(event.items);
           break;
+        case "seedFound": {
+          const memory = echoMemoryForSeed(event.seedId);
+          if (memory) setRecentMemory(memory);
+          break;
+        }
         case "progress":
           updateSave((current) => ({
             ...current,
@@ -355,11 +373,13 @@ export default function GlimmerGrotto() {
     if (screen !== "playing") return;
     const onVisibility = () => {
       if (document.hidden) gameRef.current?.pause();
-      else if (!settingsOpen && !helpOpen && !restartOpen) gameRef.current?.resume();
+      else if (!settingsOpen && !helpOpen && !restartOpen && !memoryOpen) {
+        gameRef.current?.resume();
+      }
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [helpOpen, restartOpen, screen, settingsOpen]);
+  }, [helpOpen, memoryOpen, restartOpen, screen, settingsOpen]);
 
   useEffect(() => {
     if (screen !== "playing") return;
@@ -410,6 +430,8 @@ export default function GlimmerGrotto() {
     setTutorialStep(null);
     setBiomeArrival(null);
     setMechanicStatus([]);
+    setRecentMemory(null);
+    setMemoryOpen(false);
     setScreen("playing");
     setSession((value) => value + 1);
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -435,6 +457,8 @@ export default function GlimmerGrotto() {
     setTutorialStep(null);
     setBiomeArrival(null);
     setMechanicStatus([]);
+    setRecentMemory(null);
+    setMemoryOpen(false);
     setScreen("title");
     setAnnouncement("Journey saved. Back at the grotto entrance.");
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -488,8 +512,19 @@ export default function GlimmerGrotto() {
   };
 
   const revealHint = () => {
+    setRecentMemory(null);
     dispatch({ type: "hint" });
   };
+
+  const openMemories = useCallback(() => {
+    gameRef.current?.pause();
+    setMemoryOpen(true);
+  }, []);
+
+  const closeMemories = useCallback(() => {
+    setMemoryOpen(false);
+    if (screen === "playing") gameRef.current?.resume();
+  }, [screen]);
 
   const install = async () => {
     if (!installPrompt) return;
@@ -543,6 +578,8 @@ export default function GlimmerGrotto() {
       setTutorialStep(null);
       setBiomeArrival(null);
       setMechanicStatus([]);
+      setRecentMemory(null);
+      setMemoryOpen(false);
       setScreen(persisted.journeyComplete ? "complete" : "title");
       setSession((value) => value + 1);
       setStorageNote("Save imported. Close settings to continue.");
@@ -553,7 +590,10 @@ export default function GlimmerGrotto() {
 
   const settings = save?.settings ?? createFreshSave().settings;
   const completed = save?.completedRooms.length ?? 0;
-  const seeds = save?.collectedSeeds.length ?? 0;
+  const collectedSeedIds = save?.collectedSeeds ?? [];
+  const seeds = collectedMemoryCount(collectedSeedIds);
+  const memoryGroups = echoMemoryGroups(collectedSeedIds);
+  const memoriesComplete = seeds === ECHO_MEMORIES.length;
   const hasProgress = completed > 0 || (save?.currentRoom ?? 0) > 0;
   const tutorial = tutorialStep
     ? {
@@ -612,6 +652,17 @@ export default function GlimmerGrotto() {
               <Icon>↓</Icon> Install
             </button>
           )}
+          {seeds > 0 && (
+            <button
+              type="button"
+              className={`icon-button topbar-memory-button ${screen === "playing" ? "is-playing" : ""}`}
+              onClick={openMemories}
+              aria-label={`Echo memories, ${seeds} of ${ECHO_MEMORIES.length} found`}
+            >
+              <Icon>✧</Icon>
+              <span className="sr-only">Echo memories</span>
+            </button>
+          )}
           <button type="button" className="icon-button" onClick={openHelp}>
             <Icon>?</Icon>
             <span className="sr-only">How to play</span>
@@ -665,6 +716,7 @@ export default function GlimmerGrotto() {
               <span>No fail states</span>
               <span>Local autosave</span>
               <span>20 handcrafted rooms</span>
+              <span>15 hidden memories</span>
             </div>
           </div>
 
@@ -701,9 +753,14 @@ export default function GlimmerGrotto() {
               <span>
                 <b>{completed}</b>/{totalRooms} rooms
               </span>
-              <span>
+              <button
+                type="button"
+                className="journey-memory-count"
+                onClick={openMemories}
+                aria-label={`Open echo memories, ${seeds} of ${ECHO_MEMORIES.length} found`}
+              >
                 <b>{seeds}</b>/15 seeds
-              </span>
+              </button>
             </div>
           </div>
 
@@ -903,14 +960,22 @@ export default function GlimmerGrotto() {
               </div>
             </div>
             <div
-              className={`hint-card ${hintStage > 0 ? "is-visible" : ""}`}
+              className={`hint-card ${hintStage > 0 || recentMemory ? "is-visible" : ""} ${recentMemory ? "is-memory" : ""}`}
               aria-live="polite"
             >
-              <p>{hintStage > 0 ? `Lantern hint ${hintStage} of 3` : "Lantern hints"}</p>
+              <p>
+                {recentMemory
+                  ? `Echo memory · ${recentMemory.title}`
+                  : hintStage > 0
+                    ? `Lantern hint ${hintStage} of 3`
+                    : "Lantern hints"}
+              </p>
               <span>
-                {hintStage > 0
-                  ? room?.hints[hintStage - 1]
-                  : "Ask only when you want a gentle nudge."}
+                {recentMemory
+                  ? recentMemory.text
+                  : hintStage > 0
+                    ? room?.hints[hintStage - 1]
+                    : "Ask only when you want a gentle nudge."}
               </span>
             </div>
           </div>
@@ -1031,6 +1096,69 @@ export default function GlimmerGrotto() {
               <input ref={fileInputRef} type="file" accept="application/json,.json" onChange={uploadSave} hidden />
             </div>
             {storageNote && <p className="storage-note" role="status">{storageNote}</p>}
+        </Modal>
+      )}
+
+      {memoryOpen && (
+        <Modal labelledBy="memories-title" className="memory-panel" onClose={closeMemories}>
+          <button
+            type="button"
+            className="modal-close"
+            onClick={closeMemories}
+            aria-label="Close echo memories"
+            autoFocus
+          >
+            ×
+          </button>
+          <p className="eyebrow">The lantern remembers</p>
+          <h2 id="memories-title">Echo memories</h2>
+          <div className={`memory-summary ${memoriesComplete ? "is-complete" : ""}`}>
+            <span className="memory-summary__glyph" aria-hidden="true">✧</span>
+            <div>
+              <strong>{seeds} of {ECHO_MEMORIES.length} memories returned</strong>
+              <p>
+                {memoriesComplete
+                  ? "Every lost story has found its way back to the lantern."
+                  : "Echo seeds hold stories left by the grotto's old keepers."}
+              </p>
+            </div>
+          </div>
+          <div className="memory-groups">
+            {memoryGroups.map((group) => (
+              <section
+                key={group.biome}
+                className={`memory-group memory-group--${group.biome}`}
+                aria-labelledby={`memory-biome-${group.biome}`}
+              >
+                <div className="memory-group__heading">
+                  <h3 id={`memory-biome-${group.biome}`}>{group.biomeName}</h3>
+                  <span>{group.found} / {group.entries.length}</span>
+                </div>
+                <ol className="memory-list" role="list">
+                  {group.entries.map((entry) => (
+                    <li
+                      key={entry.seedId}
+                      role="listitem"
+                      className={`memory-entry ${entry.discovered ? "is-found" : "is-sleeping"}`}
+                    >
+                      <span className="memory-entry__number" aria-hidden="true">
+                        {String(entry.number).padStart(2, "0")}
+                      </span>
+                      <div>
+                        <h4>{entry.discovered ? entry.title : "Memory sleeping"}</h4>
+                        <p>
+                          {entry.discovered
+                            ? entry.text
+                            : `An echo seed somewhere in ${entry.biomeName} has not been found.`}
+                        </p>
+                        {entry.discovered && <small>Found in {entry.roomName}</small>}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </div>
         </Modal>
       )}
 

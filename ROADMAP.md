@@ -11,7 +11,8 @@ quality, performance, then cosmetic polish.
   TypeScript, deterministic puzzle model, local save recovery, input
   abstraction, PWA shell, and automated validation.
 - **Playable campaign — complete:** five biomes, 20 required rooms, 15 secrets,
-  progressive hints, environmental story, procedural sound, and ending.
+  a 15-entry recovered-memory collection, progressive hints, environmental
+  story, procedural sound, and ending.
 - **Vertical-slice polish — active:** short-landscape and touch ergonomics,
   dialog accessibility, restart safety, save reconciliation, PWA update safety,
   recorded room traces, opening-room guidance, and the first controller-tuning
@@ -20,8 +21,9 @@ quality, performance, then cosmetic polish.
   Structured human playthroughs remain.
 - **Alpha:** full navigation/action traces and the automated pacing curve are
   complete, alongside the first biome-identity, narrative-transition, and
-  non-audio mechanic-comprehension passes. Refine room-to-room story echoes and
-  tune room order from human playtest observations.
+  non-audio mechanic-comprehension passes. The first room-to-room story-echo
+  pass is complete through the seed-memory journal; tune its discovery pacing
+  and room order from human playtest observations.
 - **Beta:** content freeze, accessibility audit, current/previous browser matrix,
   offline/update testing, performance profiling, and license review.
 - **1.0:** zero severe defects, clean-profile completion, rollback rehearsal,

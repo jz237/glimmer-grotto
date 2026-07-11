@@ -5,6 +5,42 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-10 — Recovering the keeper stories
+
+- **Build:** 0.10.0 release candidate
+- **Scenario:** Open an eight-memory collection from the title, resume at
+  Rootsong, recover its seed, review the ninth memory from the room and journal,
+  then close the journal with Escape.
+- **Inputs:** pointer activation, keyboard movement, and Escape.
+- **Viewports:** 1280 × 720 desktop and 667 × 375 phone landscape.
+- **Coverage:** existing-save reconstruction, four biome groups, discovered and
+  sleeping entries, new-memory feedback, progress update, modal pause, focus
+  return, and scroll containment.
+
+### Observations
+
+- The existing save immediately reconstructed eight correct stories without a
+  schema change. Unknown or future seed IDs cannot inflate the visible 15-item
+  collection count.
+- Collecting Rootsong's seed changed the counter from 8/15 to 9/15 and surfaced
+  “A Melody Is a Map” in the companion card before any journal interaction.
+- The journal then showed Hushroot at 2/4 while keeping both undiscovered titles
+  hidden. Escape returned focus to the exact control that opened it.
+- The phone journal retained its heading, progress summary, close control, and
+  single-column cards without horizontal overflow. Locking background scroll
+  removed the competing page scrollbar while preserving the journal's own
+  scroll region.
+- The first phone pass exposed that short-landscape mode hides the play heading
+  and its interactive seed counter. A compact top-bar journal control now keeps
+  the collection reachable at that breakpoint.
+
+### Follow-up
+
+- Complete a clean-profile 15-seed run and review whether the full story arc
+  rewards the optional detours at their actual campaign cadence.
+- Observe whether first-time players discover the journal naturally from the
+  interactive seed counter without additional tutorial copy.
+
 ## 2026-07-10 — Prism Pools to the first rootsong
 
 - **Build:** 0.9.0 release candidate

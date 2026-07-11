@@ -12,7 +12,8 @@ five biomes. There is no combat, timer, death, or irreversible puzzle state.
 2. Walk to crystals, glimmer motes, bell-flowers, or tide controls.
 3. Use one contextual action to turn, carry, ring, or toggle them.
 4. Route light into the sleeping bloom.
-5. Optionally collect an echo seed, then continue deeper.
+5. Optionally collect an echo seed to return one keeper memory to the lantern,
+   then continue deeper.
 
 Every room offers reset, focus highlighting, and three progressively explicit
 hints. Required information is never carried by color or sound alone.
@@ -25,8 +26,10 @@ hints. Required information is never carried by color or sound alone.
 - **Tideglass Deeps:** reversible tide conditions and charged sources.
 - **Heartbloom Sanctum:** combinations of all established systems.
 
-The campaign contains 20 required rooms and 15 optional echo seeds. The ending
-records completion locally and allows a fresh journey without an account.
+The campaign contains 20 required rooms and 15 optional echo seeds. Recovered
+seeds reveal an ordered journal of stories left by the grotto's old keepers;
+missing entries never expose their title. The ending records completion locally
+and allows a fresh journey without an account.
 
 ## Experience rules
 
@@ -36,4 +39,3 @@ records completion locally and allows a fresh journey without an account.
 - Mica's movement, Luma's motion, screen effects, text size, contrast, music,
   and effects must respect the accessibility settings.
 - Player behavior is not transmitted or analyzed.
-

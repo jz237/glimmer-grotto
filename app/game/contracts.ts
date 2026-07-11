@@ -155,6 +155,7 @@ export type GameEvent =
   | { type: "biomeArrival"; arrival: BiomeArrival | null }
   | { type: "biomeSeen"; biome: BiomeId }
   | { type: "mechanicStatus"; items: MechanicStatusItem[] }
+  | { type: "seedFound"; seedId: string }
   | {
       type: "progress";
       currentRoom: number;

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.10.0 — Echoes kept
+
+- Turned all 15 optional echo seeds into an original narrative collection
+  spanning Mosswake, Prism Pools, Hushroot, and Tideglass.
+- Added an accessible lantern journal with biome progress, discovered stories,
+  gently obscured missing entries, and a distinct completion message when
+  every memory returns.
+- Reconstructed discoveries from the seed IDs already present in local saves,
+  so existing journeys gain their full collection without a save migration.
+- Made each new memory appear in the room's companion card, promoted the seed
+  counter into a journal control, and added compact collection access wherever
+  short layouts hide that counter.
+- Contained background scrolling while dialogs are open, preserved Escape and
+  focus-return behavior, and verified the journal at desktop and 667 × 375
+  phone-landscape sizes.
+- Added content-alignment, uniqueness, grouping, unknown-entry, and complete-
+  collection coverage, bringing the deterministic suite to 165 checks.
+
 ## 0.9.0 — Remembered songs
 
 - Added a persistent puzzle-status panel for every glimmer source, rootsong,
