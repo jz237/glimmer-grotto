@@ -15,11 +15,11 @@ quality, performance, then cosmetic polish.
 - **Vertical-slice polish — active:** short-landscape and touch ergonomics,
   dialog accessibility, restart safety, save reconciliation, PWA update safety,
   recorded room traces, opening-room guidance, and the first controller-tuning
-  pass are complete. Structured human playthroughs and animation refinement
+  and animation-feedback passes are complete. Structured human playthroughs
   remain.
-- **Alpha:** refine all biome identities, improve narrative transitions, add
-  full navigation/action playthrough traces, and tune room order from playtest
-  observations.
+- **Alpha:** full navigation/action traces and the automated pacing curve are
+  complete. Refine all biome identities, improve narrative transitions, and
+  tune room order from human playtest observations.
 - **Beta:** content freeze, accessibility audit, current/previous browser matrix,
   offline/update testing, performance profiling, and license review.
 - **1.0:** zero severe defects, clean-profile completion, rollback rehearsal,

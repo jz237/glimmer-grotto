@@ -17,6 +17,8 @@ import {
   createDirectionRepeatState,
   readGamepadFrame,
 } from "./input";
+import { mothPose } from "./motion";
+import { interactionTargetAt, isBlockedCell } from "./navigation";
 import {
   createInitialPuzzleState,
   ringBell,
@@ -174,6 +176,7 @@ class GlimmerScene extends Phaser.Scene {
   private room!: RoomDefinition;
   private puzzle!: PuzzleState;
   private playerCell!: Cell;
+  private facing: Cell = { x: 0, y: -1 };
   private player?: Phaser.GameObjects.Container;
   private moth?: Phaser.GameObjects.Container;
   private carrying = false;
@@ -213,13 +216,12 @@ class GlimmerScene extends Phaser.Scene {
 
   update(time: number): void {
     if (this.moth && this.player) {
-      const phase = time / 680;
-      const radius = this.settings.reducedMotion ? 24 : 28;
+      const pose = mothPose(time, this.settings.reducedMotion);
       this.moth.setPosition(
-        this.player.x + Math.cos(phase) * radius,
-        this.player.y - 22 + Math.sin(phase * 1.3) * 10,
+        this.player.x + pose.x,
+        this.player.y + pose.y,
       );
-      this.moth.setRotation(Math.sin(phase * 2) * 0.12);
+      this.moth.setRotation(pose.rotation);
     }
     this.pollGamepad(time);
   }
@@ -242,6 +244,7 @@ class GlimmerScene extends Phaser.Scene {
       case "focus":
         this.focusMode = !this.focusMode;
         this.drawRoom();
+        this.pulseAt(this.playerCell);
         this.announce(
           this.focusMode
             ? "Focus glow on. Nearby objects are outlined."
@@ -275,6 +278,7 @@ class GlimmerScene extends Phaser.Scene {
     this.room = ROOMS[this.roomIndex];
     this.puzzle = createInitialPuzzleState(this.room);
     this.playerCell = { ...this.room.start };
+    this.facing = { x: 0, y: -1 };
     this.carrying = false;
     this.moteAvailable = Boolean(this.room.mote);
     this.moving = false;
@@ -297,6 +301,9 @@ class GlimmerScene extends Phaser.Scene {
       hints: this.room.hints,
     });
     this.onEvent({ type: "tutorial", step: this.tutorialStep });
+    if (!this.settings.reducedMotion) {
+      this.cameras.main.fadeIn(240, 4, 19, 19);
+    }
     this.announce(`${this.room.name}. ${this.room.subtitle}`);
   }
 
@@ -645,7 +652,7 @@ class GlimmerScene extends Phaser.Scene {
       0.92,
     );
     panel.setStrokeStyle(2, this.room.palette.accent, 0.72);
-    this.add
+    const title = this.add
       .text(WIDTH / 2, HEIGHT / 2 - 22, "ROOM RESTORED", {
         color: cssHex(this.room.palette.accent),
         fontFamily: "Georgia, serif",
@@ -654,7 +661,7 @@ class GlimmerScene extends Phaser.Scene {
         letterSpacing: 2,
       })
       .setOrigin(0.5);
-    this.add
+    const instruction = this.add
       .text(
         WIDTH / 2,
         HEIGHT / 2 + 24,
@@ -668,13 +675,68 @@ class GlimmerScene extends Phaser.Scene {
         },
       )
       .setOrigin(0.5);
+
+    if (!this.settings.reducedMotion) {
+      veil.setAlpha(0);
+      panel.setAlpha(0).setScale(0.94);
+      title.setAlpha(0);
+      instruction.setAlpha(0);
+      this.tweens.add({ targets: veil, alpha: 1, duration: 180 });
+      this.tweens.add({
+        targets: [panel, title, instruction],
+        alpha: 1,
+        duration: 240,
+        delay: 70,
+        ease: "Sine.Out",
+      });
+      this.tweens.add({
+        targets: panel,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 260,
+        delay: 70,
+        ease: "Back.Out",
+      });
+    }
+  }
+
+  private pulseAt(cell: Cell, color = this.room.palette.accent): void {
+    if (this.settings.reducedMotion) return;
+    const world = cellToWorld(cell);
+    const ring = this.add.circle(world.x, world.y, 14, color, 0);
+    ring.setStrokeStyle(3, color, 0.82).setDepth(30);
+    this.tweens.add({
+      targets: ring,
+      scaleX: 2.35,
+      scaleY: 2.35,
+      alpha: 0,
+      duration: 360,
+      ease: "Sine.Out",
+      onComplete: () => ring.destroy(),
+    });
+  }
+
+  private bumpPlayer(dx: number, dy: number): void {
+    if (this.settings.reducedMotion || !this.player || this.moving) return;
+    const origin = { x: this.player.x, y: this.player.y };
+    this.tweens.add({
+      targets: this.player,
+      x: origin.x + dx * 6,
+      y: origin.y + dy * 6,
+      duration: 48,
+      yoyo: true,
+      ease: "Sine.Out",
+      onComplete: () => this.player?.setPosition(origin.x, origin.y),
+    });
   }
 
   private move(dx: number, dy: number): void {
     if (this.solved || this.moving) return;
+    this.facing = { x: Math.sign(dx), y: Math.sign(dy) };
     const next = { x: this.playerCell.x + dx, y: this.playerCell.y + dy };
-    if (this.isBlocked(next)) {
+    if (isBlockedCell(this.room, next)) {
       this.audio.bump();
+      this.bumpPlayer(dx, dy);
       return;
     }
     this.playerCell = next;
@@ -699,16 +761,6 @@ class GlimmerScene extends Phaser.Scene {
     });
   }
 
-  private isBlocked(cell: Cell): boolean {
-    if (cell.x < 1 || cell.x > 13 || cell.y < 1 || cell.y > 7) return true;
-    if (this.room.walls.some((item) => sameCell(item, cell))) return true;
-    if (this.room.crystals.some((item) => sameCell(item, cell))) return true;
-    if (sameCell(this.room.source, cell) || sameCell(this.room.bloom, cell)) return true;
-    if (this.room.bells?.some((item) => sameCell(item, cell))) return true;
-    if (this.room.tideSwitch && sameCell(this.room.tideSwitch, cell)) return true;
-    return false;
-  }
-
   private handleLanding(): void {
     if (
       this.room.mote &&
@@ -722,6 +774,7 @@ class GlimmerScene extends Phaser.Scene {
       this.audio.collect();
       this.announce("Mica carries a loose glimmer. Bring it to the dark source.");
       this.drawRoom();
+      this.pulseAt(this.playerCell, this.room.palette.beam);
       return;
     }
     if (
@@ -734,10 +787,11 @@ class GlimmerScene extends Phaser.Scene {
       this.announce("Echo seed found. Its memory joins the lantern.");
       this.emitProgress(this.roomIndex);
       this.drawRoom();
+      this.pulseAt(this.playerCell, this.room.palette.beam);
     }
   }
 
-  private interact(): void {
+  private interact(preferredCell?: Cell): void {
     if (this.solved) {
       if (this.roomIndex >= ROOMS.length - 1) {
         this.onEvent({ type: "journeyComplete" });
@@ -748,7 +802,13 @@ class GlimmerScene extends Phaser.Scene {
       return;
     }
 
-    if (distance(this.playerCell, this.room.source) <= 1 && this.room.requiresCharge) {
+    const facingCell = preferredCell ?? {
+      x: this.playerCell.x + this.facing.x,
+      y: this.playerCell.y + this.facing.y,
+    };
+    const target = interactionTargetAt(this.room, this.playerCell, facingCell);
+
+    if (target?.kind === "source") {
       if (this.carrying) {
         this.puzzle = { ...this.puzzle, charged: true };
         this.carrying = false;
@@ -762,12 +822,13 @@ class GlimmerScene extends Phaser.Scene {
         this.announce("This source needs a loose glimmer.");
       }
       this.drawRoom();
+      this.pulseAt(this.room.source);
       return;
     }
 
-    const nearbyBell = this.room.bells?.find(
-      (item) => distance(this.playerCell, item) <= 1,
-    );
+    const nearbyBell = target?.kind === "bell"
+      ? this.room.bells?.find((item) => item.id === target.id)
+      : undefined;
     if (nearbyBell) {
       const result = ringBell(this.room, this.puzzle, nearbyBell.id);
       this.puzzle = result.state;
@@ -780,25 +841,28 @@ class GlimmerScene extends Phaser.Scene {
             : "The roots fall quiet. The sequence begins again.",
       );
       this.drawRoom();
+      this.pulseAt(nearbyBell);
       return;
     }
 
-    if (this.room.tideSwitch && distance(this.playerCell, this.room.tideSwitch) <= 1) {
+    if (target?.kind === "tide" && this.room.tideSwitch) {
       this.puzzle = toggleTide(this.puzzle);
       this.audio.note(this.puzzle.tide === "high" ? 294 : 196, 0.6, 0.75);
       this.announce(`The tide is now ${this.puzzle.tide}.`);
       this.drawRoom();
+      this.pulseAt(this.room.tideSwitch);
       return;
     }
 
-    const nearbyCrystal = this.room.crystals.find(
-      (item) => distance(this.playerCell, item) <= 1,
-    );
+    const nearbyCrystal = target?.kind === "crystal"
+      ? this.room.crystals.find((item) => item.id === target.id)
+      : undefined;
     if (nearbyCrystal) {
       this.puzzle = rotateCrystal(this.puzzle, nearbyCrystal.id);
       this.audio.rotate();
       if (this.tutorialStep) this.setTutorialStep("follow");
       this.drawRoom();
+      this.pulseAt(nearbyCrystal);
       if (!this.solved) {
         this.announce("Crystal turned. Follow the beam to its next stopping place.");
       }
@@ -806,12 +870,14 @@ class GlimmerScene extends Phaser.Scene {
     }
 
     this.audio.bump();
+    this.pulseAt(this.playerCell, this.room.palette.stone);
     this.announce("Nothing nearby needs the lantern just now.");
   }
 
   private resetRoom(): void {
     this.puzzle = createInitialPuzzleState(this.room);
     this.playerCell = { ...this.room.start };
+    this.facing = { x: 0, y: -1 };
     this.carrying = false;
     this.moteAvailable = Boolean(this.room.mote);
     this.solved = false;
@@ -822,6 +888,9 @@ class GlimmerScene extends Phaser.Scene {
         : null,
     );
     this.drawRoom();
+    if (!this.settings.reducedMotion) {
+      this.cameras.main.fadeIn(160, 4, 19, 19);
+    }
     this.announce("The room settles back to its starting pattern.");
   }
 
@@ -905,7 +974,7 @@ class GlimmerScene extends Phaser.Scene {
     const deltaX = target.x - this.playerCell.x;
     const deltaY = target.y - this.playerCell.y;
     if (Math.abs(deltaX) + Math.abs(deltaY) === 1) {
-      if (this.isBlocked(target)) this.interact();
+      if (isBlockedCell(this.room, target)) this.interact(target);
       else this.move(Math.sign(deltaX), Math.sign(deltaY));
     }
   }

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.0 — Living light
+
+- Added full movement-and-action playthrough traces for all 20 rooms, including
+  charge carrying, rootsongs, tide controls, every crystal, and all 15 optional
+  echo seeds.
+- Shared collision and interaction-selection rules between the runtime and
+  playthrough verifier so tests exercise the same approach constraints players
+  encounter.
+- Made keyboard and controller action prefer the object Mica faces, while
+  pointer input now honors the exact nearby object selected. This removes
+  ambiguous bell, switch, source, and crystal interactions.
+- Added verified room-length budgets and a biome pacing curve, including the
+  intentional Tideglass breather before the Heartbloom finale.
+- Added quiet visual feedback for blocked steps, collections, puzzle actions,
+  resets, room entrances, and restoration without changing puzzle timing.
+- Made Luma fully stationary in reduced-motion mode and added deterministic
+  motion bounds, bringing the unit suite to 134 checks.
+
 ## 0.6.0 — First light
 
 - Added a compact three-step guide to the opening room that follows the
