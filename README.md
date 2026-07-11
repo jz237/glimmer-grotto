@@ -52,6 +52,10 @@ repair or is rejected offline instead of reaching the game runtime.
 `npm run build:pages` also produces `dist-pages`, a self-contained static
 release whose relative assets, manifest, and service-worker scope are safe to
 place in the existing `/games/2026-06-10/glimmer-grotto/` arcade directory.
+Deployable Sites builds use the normal Cloudflare adapter and include
+`dist/server/wrangler.json`. Set `GLIMMER_RESTRICTED_BUILD=1` only in a local
+environment that cannot launch the adapter's helper processes; that fallback is
+for validation and is not a Sites release artifact.
 Controller lifecycle checks prove disconnects, identity swaps, tab hiding, and
 window blur cannot replay held input into a resumed puzzle or newly focused UI.
 Touch lifecycle checks prove repeating movement stops on pointer, focus,
