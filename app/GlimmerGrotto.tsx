@@ -16,6 +16,7 @@ import type {
   GameEvent,
   GameHandle,
   InputMethod,
+  MechanicStatusItem,
   SaveGameV1,
   TutorialStep,
 } from "./game/contracts";
@@ -162,6 +163,7 @@ export default function GlimmerGrotto() {
   const [inputMethod, setInputMethod] = useState<InputMethod>("keyboard");
   const [tutorialStep, setTutorialStep] = useState<TutorialStep | null>(null);
   const [biomeArrival, setBiomeArrival] = useState<BiomeArrival | null>(null);
+  const [mechanicStatus, setMechanicStatus] = useState<MechanicStatusItem[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
@@ -295,6 +297,9 @@ export default function GlimmerGrotto() {
               : [...current.seenBiomes, event.biome],
           }));
           break;
+        case "mechanicStatus":
+          setMechanicStatus(event.items);
+          break;
         case "progress":
           updateSave((current) => ({
             ...current,
@@ -404,6 +409,7 @@ export default function GlimmerGrotto() {
     setHintStage(0);
     setTutorialStep(null);
     setBiomeArrival(null);
+    setMechanicStatus([]);
     setScreen("playing");
     setSession((value) => value + 1);
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -428,6 +434,7 @@ export default function GlimmerGrotto() {
     setHintStage(0);
     setTutorialStep(null);
     setBiomeArrival(null);
+    setMechanicStatus([]);
     setScreen("title");
     setAnnouncement("Journey saved. Back at the grotto entrance.");
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -535,6 +542,7 @@ export default function GlimmerGrotto() {
       setHintStage(0);
       setTutorialStep(null);
       setBiomeArrival(null);
+      setMechanicStatus([]);
       setScreen(persisted.journeyComplete ? "complete" : "title");
       setSession((value) => value + 1);
       setStorageNote("Save imported. Close settings to continue.");
@@ -706,7 +714,10 @@ export default function GlimmerGrotto() {
               role="application"
               tabIndex={biomeArrival ? -1 : 0}
               aria-hidden={biomeArrival ? true : undefined}
-              aria-describedby={tutorial ? "first-room-guide" : undefined}
+              aria-describedby={[
+                tutorial ? "first-room-guide" : "",
+                mechanicStatus.length > 0 && !biomeArrival ? "puzzle-status" : "",
+              ].filter(Boolean).join(" ") || undefined}
               aria-label="Top-down light puzzle. Use arrow keys or WASD, touch controls, or a gamepad to move. Use action to interact."
             />
             {!room && (
@@ -772,6 +783,32 @@ export default function GlimmerGrotto() {
                 <Icon>↺</Icon> Reset
               </button>
             </div>
+            {mechanicStatus.length > 0 && !biomeArrival && (
+              <aside id="puzzle-status" className="mechanic-status" aria-label="Puzzle status">
+                {mechanicStatus.map((item) => (
+                  <section
+                    key={item.kind}
+                    className={`mechanic-status__item mechanic-status__item--${item.kind}`}
+                  >
+                    <span className="mechanic-status__label">{item.label}</span>
+                    <strong>{item.value}</strong>
+                    {item.sequence && (
+                      <span className="mechanic-sequence" aria-hidden="true">
+                        {item.sequence.map((step, index) => (
+                          <span
+                            key={`${step.name}-${index}`}
+                            className={`mechanic-sequence__step is-${step.state}`}
+                          >
+                            {step.glyph}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                    <span className="sr-only">{item.detail}</span>
+                  </section>
+                ))}
+              </aside>
+            )}
             {tutorial && (
               <aside id="first-room-guide" className="tutorial-card" role="status">
                 <span>{tutorial.progress}</span>

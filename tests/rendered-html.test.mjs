@@ -46,7 +46,7 @@ test("ships the PWA files and removes the disposable starter", async () => {
     parsedManifest.icons.map((icon) => icon.sizes),
     ["192x192", "512x512"],
   );
-  assert.match(worker, /glimmer-grotto-v2/);
+  assert.match(worker, /glimmer-grotto-v3/);
   assert.match(worker, /SKIP_WAITING/);
   assert.match(worker, /url\.searchParams\.has\("_rsc"\)/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);

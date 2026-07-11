@@ -30,6 +30,7 @@ import {
   toggleTide,
   traceBeam,
 } from "./puzzle";
+import { roomMechanicStatus } from "./status";
 
 const WIDTH = 960;
 const HEIGHT = 540;
@@ -326,6 +327,7 @@ class GlimmerScene extends Phaser.Scene {
     });
     this.onEvent({ type: "tutorial", step: this.tutorialStep });
     this.onEvent({ type: "biomeArrival", arrival: this.biomeArrival });
+    this.emitMechanicStatus();
     if (!this.settings.reducedMotion) {
       this.cameras.main.fadeIn(240, 4, 19, 19);
     }
@@ -805,6 +807,7 @@ class GlimmerScene extends Phaser.Scene {
       this.audio.collect();
       this.announce("Mica carries a loose glimmer. Bring it to the dark source.");
       this.drawRoom();
+      this.emitMechanicStatus();
       this.pulseAt(this.playerCell, this.room.palette.beam);
       return;
     }
@@ -857,6 +860,7 @@ class GlimmerScene extends Phaser.Scene {
         this.announce("This source needs a loose glimmer.");
       }
       this.drawRoom();
+      this.emitMechanicStatus();
       this.pulseAt(this.room.source);
       return;
     }
@@ -876,6 +880,7 @@ class GlimmerScene extends Phaser.Scene {
             : "The roots fall quiet. The sequence begins again.",
       );
       this.drawRoom();
+      this.emitMechanicStatus();
       this.pulseAt(nearbyBell);
       return;
     }
@@ -885,6 +890,7 @@ class GlimmerScene extends Phaser.Scene {
       this.audio.note(this.puzzle.tide === "high" ? 294 : 196, 0.6, 0.75);
       this.announce(`The tide is now ${this.puzzle.tide}.`);
       this.drawRoom();
+      this.emitMechanicStatus();
       this.pulseAt(this.room.tideSwitch);
       return;
     }
@@ -933,6 +939,7 @@ class GlimmerScene extends Phaser.Scene {
         : null,
     );
     this.drawRoom();
+    this.emitMechanicStatus();
     if (!this.settings.reducedMotion) {
       this.cameras.main.fadeIn(160, 4, 19, 19);
     }
@@ -976,6 +983,13 @@ class GlimmerScene extends Phaser.Scene {
       currentRoom,
       completedRooms: [...this.completedRooms],
       collectedSeeds: [...this.collectedSeeds],
+    });
+  }
+
+  private emitMechanicStatus(): void {
+    this.onEvent({
+      type: "mechanicStatus",
+      items: roomMechanicStatus(this.room, this.puzzle, this.carrying),
     });
   }
 

@@ -30,7 +30,8 @@ interactive objects.
 
 - React/Vinext renders the title, story, settings, accessibility, and PWA shell.
 - Phaser renders the top-down cave rooms and handles game input.
-- Puzzle state is deterministic and separate from rendering.
+- Puzzle state and player-facing mechanic status are deterministic and separate
+  from rendering.
 - Progress is stored only in versioned local browser storage, with a backup and
   manual export/import.
 - The Sites project is static from the player's perspective: no account,
@@ -38,4 +39,3 @@ interactive objects.
 
 See [GAME_DESIGN.md](./GAME_DESIGN.md) for the product rules and
 [ROADMAP.md](./ROADMAP.md) for the autonomous improvement cadence.
-

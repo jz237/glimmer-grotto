@@ -109,6 +109,22 @@ export interface BiomeArrival {
   glyph: string;
 }
 
+export type MechanicStatusKind = "charge" | "rootsong" | "tide";
+
+export interface MechanicSequenceStep {
+  glyph: string;
+  name: string;
+  state: "complete" | "current" | "upcoming";
+}
+
+export interface MechanicStatusItem {
+  kind: MechanicStatusKind;
+  label: string;
+  value: string;
+  detail: string;
+  sequence?: MechanicSequenceStep[];
+}
+
 export type GameCommand =
   | { type: "move"; dx: -1 | 0 | 1; dy: -1 | 0 | 1 }
   | { type: "interact" }
@@ -138,6 +154,7 @@ export type GameEvent =
   | { type: "tutorial"; step: TutorialStep | null }
   | { type: "biomeArrival"; arrival: BiomeArrival | null }
   | { type: "biomeSeen"; biome: BiomeId }
+  | { type: "mechanicStatus"; items: MechanicStatusItem[] }
   | {
       type: "progress";
       currentRoom: number;

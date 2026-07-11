@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.9.0 — Remembered songs
+
+- Added a persistent puzzle-status panel for every glimmer source, rootsong,
+  and tide requirement, so special mechanics no longer depend on a fleeting
+  announcement or sound cue.
+- Made rootsongs readable note by note with their full glyph pattern,
+  completed/current/upcoming states, exact progress, and screen-reader text
+  naming both the pattern and next note.
+- Kept status synchronized when light is collected or moved, bells are rung,
+  tides change, rooms load, and puzzles reset, while keeping it hidden behind
+  biome-arrival dialogs and omitting crystal solutions.
+- Added compact high-contrast, large-text, reduced-motion, desktop, and touch
+  layouts. At 667 × 375, the panel clears both the direction pad and Action
+  control.
+- Completed and recorded a five-room Prism-to-Hushroot playtest, including the
+  first rootsong note by note, and expanded the deterministic suite from 138
+  to 161 checks.
+
 ## 0.8.0 — Thresholds
 
 - Added distinct arrival moments for Prism Pools, Hushroot Hollows, Tideglass
