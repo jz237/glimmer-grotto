@@ -1127,6 +1127,39 @@ input:focus-visible {
   letter-spacing: 0.06em;
 }
 
+.footer-details {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: flex-end;
+}
+
+.site-footer a,
+.license-note a {
+  color: #9ebbb1;
+  text-decoration-color: rgba(170, 247, 188, 0.45);
+  text-underline-offset: 3px;
+}
+
+.site-footer a:hover,
+.license-note a:hover {
+  color: var(--glimmer-bright);
+}
+
+.site-footer a:focus-visible,
+.license-note a:focus-visible {
+  border-radius: 3px;
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.license-note {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: calc(12px + var(--text-lift));
+  line-height: 1.55;
+}
+
 .modal-dialog {
   width: 100vw;
   height: 100svh;
@@ -1584,6 +1617,7 @@ kbd { min-width: 33px; padding: 5px 7px; border: 1px solid rgba(207, 255, 221, 0
   .map-room-list { grid-template-columns: 1fr; }
   .map-room { min-height: 64px; }
   .site-footer { width: calc(100% - 24px); flex-direction: column; gap: 8px; }
+  .footer-details { justify-content: flex-start; }
   .modal-panel { padding: 28px 20px; }
   .control-list > div { flex-wrap: wrap; }
   .control-list span { width: 100%; margin: 4px 0 0; }

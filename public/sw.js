@@ -1,9 +1,10 @@
 const CACHE_PREFIX = "glimmer-grotto-";
-const CACHE = "glimmer-grotto-v11";
+const CACHE = "glimmer-grotto-v12";
 const CORE = [
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",
+  "/third-party-notices.txt",
 ];
 const APP_SHELL_TITLE = "<title>Glimmer Grotto";
 
@@ -79,6 +80,7 @@ function isCoreResponse(url, response) {
     return contentType.includes("json") || contentType.includes("manifest");
   }
   if (pathname.endsWith(".png")) return contentType.startsWith("image/png");
+  if (pathname.endsWith(".txt")) return contentType.startsWith("text/plain");
   return false;
 }
 
@@ -174,6 +176,22 @@ self.addEventListener("fetch", (event) => {
     url.pathname === "/sw.js" ||
     url.searchParams.has("_rsc")
   ) {
+    return;
+  }
+
+  if (CORE.includes(url.pathname)) {
+    const refresh = fetch(request).then(async (response) => {
+      if (isCoreResponse(request.url, response)) {
+        const copy = response.clone();
+        await caches
+          .open(CACHE)
+          .then((cache) => cache.put(request, copy))
+          .catch(() => undefined);
+      }
+      return response;
+    });
+    event.waitUntil(refresh.then(() => undefined, () => undefined));
+    event.respondWith(caches.match(request).then((cached) => cached || refresh));
     return;
   }
 

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "noticePath": "public/third-party-notices.txt",
+  "components": [
+    {
+      "name": "Phaser",
+      "packages": [
+        { "name": "phaser", "version": "4.1.0" }
+      ],
+      "license": "MIT",
+      "licenseFile": "node_modules/phaser/LICENSE.md",
+      "evidence": "The production createGame chunks include node_modules/phaser/dist."
+    },
+    {
+      "name": "EventEmitter3",
+      "packages": [
+        { "name": "eventemitter3", "version": "5.0.4" }
+      ],
+      "license": "MIT",
+      "licenseFile": "node_modules/eventemitter3/LICENSE",
+      "evidence": "Phaser declares EventEmitter3 as its sole runtime dependency and its bundled source identifies the EventEmitter3 wrapper."
+    },
+    {
+      "name": "React runtime family",
+      "packages": [
+        { "name": "react", "version": "19.2.6" },
+        { "name": "react-dom", "version": "19.2.6" },
+        { "name": "scheduler", "version": "0.27.0" },
+        { "name": "react-server-dom-webpack", "version": "19.2.6" }
+      ],
+      "license": "MIT",
+      "licenseFile": "node_modules/react/LICENSE",
+      "evidence": "The client framework contains React, React DOM, and Scheduler; the server bundle also identifies React Server DOM Webpack."
+    },
+    {
+      "name": "Vinext",
+      "packages": [
+        { "name": "vinext", "version": "0.0.50" }
+      ],
+      "license": "MIT",
+      "licenseFile": "node_modules/vinext/LICENSE",
+      "evidence": "Client and server production manifests include Vinext runtime shims."
+    },
+    {
+      "name": "Vite React Server Components plugin",
+      "packages": [
+        { "name": "@vitejs/plugin-rsc", "version": "0.5.26" }
+      ],
+      "license": "MIT",
+      "licenseFile": "node_modules/@vitejs/plugin-react/LICENSE",
+      "evidence": "The server production bundle includes @vitejs/plugin-rsc runtime modules; the license is from its shared vite-plugin-react repository."
+    },
+    {
+      "name": "Rolldown runtime",
+      "packages": [
+        { "name": "rolldown", "version": "1.1.5" }
+      ],
+      "license": "MIT",
+      "licenseFile": "node_modules/rolldown/LICENSE",
+      "evidence": "The client manifest includes the generated Rolldown runtime chunk."
+    }
+  ],
+  "topLevelProductionDependencies": {
+    "next": {
+      "disposition": "not-distributed",
+      "reason": "Next.js provides the source compatibility contract; production imports are resolved to Vinext shims and no Next.js package module appears in the distribution."
+    },
+    "phaser": { "disposition": "distributed" },
+    "react": { "disposition": "distributed" },
+    "react-dom": { "disposition": "distributed" }
+  }
+}

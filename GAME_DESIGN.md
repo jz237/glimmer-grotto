@@ -71,3 +71,17 @@ pre-repair copy remains available as the backup generation.
   never replace the last valid cached shell, and progress continues to save on
   the device while disconnected.
 - Player behavior is not transmitted or analyzed.
+
+## Distribution rules
+
+- Every third-party runtime or asset present in the deployable build must have
+  an explicit distribution decision backed by production-bundle evidence.
+- Player-visible third-party notices must identify exact shipped versions,
+  preserve complete upstream license text, remain reachable from Settings, and
+  stay available with the rest of the first-install offline shell.
+- Production builds begin from an empty distribution directory. Generated
+  assets that are not referenced by emitted HTML, CSS, JavaScript, or manifests
+  are not carried into a release.
+- A dependency upgrade, new production dependency, newly retained font, or
+  missing license source stops the release until the ledger and notice are
+  reviewed together.

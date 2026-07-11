@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.18.0 — Every light accounted for
+
+- Added a production-distribution ledger for Phaser, EventEmitter3, the React
+  runtime family, Vinext, the Vite RSC plugin, and the Rolldown runtime, with
+  exact installed versions, SPDX identifiers, upstream license sources, and
+  bundle evidence.
+- Shipped complete third-party notices as a public release asset and linked
+  them from both Settings and the site footer without navigating players away
+  from an active journey.
+- Added four release checks that fail on dependency-version or license drift,
+  an unreviewed top-level production dependency, missing runtime evidence,
+  incomplete upstream license text, an uncopied notice, or an unexpected font
+  payload.
+- Made the third-party notice part of the first-install offline cache and
+  tightened its response validation to plain text.
+- Started every production build from a clean distribution directory and
+  removed 11 Vinext-generated Geist font files only after proving that no
+  emitted HTML, CSS, JavaScript, or manifest refers to them.
+- Recorded why the Next.js compatibility package is not itself distributed:
+  production imports resolve to reviewed Vinext shims and no Next.js module is
+  present in the deployable bundle.
+
 ## 0.17.0 — The lantern stays lit
 
 - Rebuilt first-install caching around the generated production shell instead

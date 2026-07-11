@@ -5,6 +5,54 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-11 — Accounting for every shipped light
+
+- **Build:** 0.18.0 release candidate
+- **Scenario:** Rebuild from an empty distribution directory, identify every
+  third-party runtime in the deployable client and server graphs, verify its
+  installed metadata and complete upstream license, then load the notice from
+  both the interface and the first-install offline cache.
+- **Inputs:** deterministic build-manifest, bundle-source, package-metadata,
+  notice-copy, service-worker install, and generated-asset checks.
+- **Viewport:** server-rendered interface pass; footer and scrollable Settings
+  provide equivalent notice access, including narrow layouts that hide the
+  footer.
+- **Coverage:** nine shipped packages in six notice groups, all four top-level
+  production dependencies, exact version and SPDX drift, full license text,
+  client/server runtime evidence, public-copy parity, offline MIME validation,
+  stale build output, and unreferenced generated fonts.
+
+### Observations
+
+- The lockfile contains optional platform packages used by the build toolchain,
+  including native image variants, but they are not present in the deployed
+  bundle. The notice now follows production evidence instead of over-reporting
+  everything installed in `node_modules`.
+- Phaser and its EventEmitter3 dependency ship in the lazy game engine. React,
+  React DOM, Scheduler, React Server DOM Webpack, Vinext, the Vite RSC runtime,
+  and a generated Rolldown helper make up the remaining reviewed runtime groups.
+- Next.js remains a source-level compatibility dependency, but its imports are
+  resolved to Vinext shims and no Next.js module appears in the distribution;
+  that exclusion is explicit and will fail closed if the graph changes.
+- A clean Vinext build still emitted 11 Geist and Geist Mono files totaling
+  146,464 bytes despite no font import or emitted reference. A guarded postbuild
+  pass now removes them only while every emitted text asset remains unreferenced;
+  a future real font use will instead stop the license gate.
+- Complete upstream MIT texts now ship in one plain-text notice. Settings and
+  the footer open it in a new tab, and service-worker installation caches it
+  alongside the shell, icons, manifest, and lazy game engine.
+- Four deterministic checks now force review when package versions, SPDX values,
+  license sources, top-level dependency decisions, bundle evidence, or copied
+  notices drift.
+
+### Follow-up
+
+- Repeat the artifact audit for every quarterly dependency upgrade and whenever
+  a new production asset type is introduced.
+- Include the notice link in physical installed-PWA testing and obtain the
+  appropriate product/legal sign-off before any explicitly approved public or
+  storefront distribution.
+
 ## 2026-07-11 — Keeping the lantern lit offline
 
 - **Build:** 0.17.0 release candidate

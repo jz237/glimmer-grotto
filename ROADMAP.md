@@ -34,9 +34,11 @@ quality, performance, then cosmetic polish.
   demand. The first fine-pointer reflow pass is complete at 200%- and
   400%-equivalent CSS viewports. Content freeze, hands-on screen-reader and
   native browser-zoom audits, the current/previous browser matrix,
-  installed-device PWA testing, performance profiling, and license review
-  remain. The automated first-install, disconnected-shell, cache-integrity,
-  and explicit-update pass is complete against the real production asset graph.
+  installed-device PWA testing and performance profiling remain. The automated
+  first-install, disconnected-shell, cache-integrity, explicit-update, and
+  shipped-artifact license passes are complete against the real production
+  graph. Third-party notices are player-visible, available offline, and guarded
+  against dependency, license-text, and generated-asset drift.
 - **1.0:** zero severe defects, clean-profile completion, rollback rehearsal,
   final private release candidate, then an explicitly approved public launch.
 
@@ -45,4 +47,5 @@ quality, performance, then cosmetic polish.
 No multiplayer, accounts, cloud saves, backend, behavioral analytics,
 monetization, native storefronts, custom domain, or public access change is
 added without a new explicit decision. Dependency upgrades are reviewed
-quarterly and must pass the complete test suite before release.
+quarterly, must update the distribution ledger when their shipped footprint
+changes, and must pass the complete test suite before release.

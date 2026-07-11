@@ -32,6 +32,8 @@ test("server-renders the finished Glimmer Grotto shell", async () => {
   assert.match(html, /15 hidden memories/);
   assert.match(html, /manifest\.webmanifest/);
   assert.match(html, /icon-192\.png/);
+  assert.match(html, /third-party-notices\.txt/);
+  assert.match(html, /Credits &amp; licenses/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Starter Project/);
 });
 
@@ -47,7 +49,8 @@ test("ships the PWA files and removes the disposable starter", async () => {
     parsedManifest.icons.map((icon) => icon.sizes),
     ["192x192", "512x512"],
   );
-  assert.match(worker, /glimmer-grotto-v11/);
+  assert.match(worker, /glimmer-grotto-v12/);
+  assert.match(worker, /third-party-notices\.txt/);
   assert.match(worker, /SKIP_WAITING/);
   assert.match(worker, /url\.searchParams\.has\("_rsc"\)/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);

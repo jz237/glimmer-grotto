@@ -23,8 +23,10 @@ npm test
 
 This runs strict TypeScript checking, puzzle/content validation, save recovery
 tests, accessibility-style guards, a production build, and server-rendered shell
-tests. Every required room has a deterministic verified solution and a
-reachability check for its interactive objects.
+tests. It also proves that distributed third-party versions, licenses, complete
+notice text, and bundle evidence match the clean production artifact. Every
+required room has a deterministic verified solution and a reachability check
+for its interactive objects.
 
 ## Architecture
 
@@ -36,6 +38,9 @@ reachability check for its interactive objects.
   campaign-aware repair, a preserved backup, and manual export/import.
 - The Sites project is static from the player's perspective: no account,
   backend, analytics, advertising, or monetization.
+- Shipped open-source components are recorded in
+  [licenses/shipped-components.json](./licenses/shipped-components.json), with
+  player-facing terms at `/third-party-notices.txt` in every production build.
 
 See [GAME_DESIGN.md](./GAME_DESIGN.md) for the product rules and
 [ROADMAP.md](./ROADMAP.md) for the autonomous improvement cadence.

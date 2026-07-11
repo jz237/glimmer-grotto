@@ -1191,7 +1191,12 @@ export default function GlimmerGrotto() {
 
       <footer className="site-footer">
         <span>Made for unhurried moments.</span>
-        <span>Your journey stays on this device.</span>
+        <span className="footer-details">
+          Your journey stays on this device.
+          <a href="/third-party-notices.txt" target="_blank" rel="noreferrer">
+            Credits &amp; licenses<span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </span>
       </footer>
 
       {helpOpen && (
@@ -1276,6 +1281,13 @@ export default function GlimmerGrotto() {
               <input ref={fileInputRef} type="file" accept="application/json,.json" onChange={uploadSave} hidden />
             </div>
             {storageNote && <p className="storage-note" role="status">{storageNote}</p>}
+            <p className="license-note">
+              Glimmer Grotto is built with open-source software.{" "}
+              <a href="/third-party-notices.txt" target="_blank" rel="noreferrer">
+                Read credits &amp; licenses<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+              .
+            </p>
         </Modal>
       )}
 

@@ -4,7 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const ORIGIN = "https://glimmer-grotto.example";
-const CURRENT_CACHE = "glimmer-grotto-v11";
+const CURRENT_CACHE = "glimmer-grotto-v12";
 const workerSource = await readFile(
   new URL("../public/sw.js", import.meta.url),
   "utf8",
@@ -178,6 +178,12 @@ function seedShellNetwork(harness) {
     new Response("icon-512", { headers: { "content-type": "image/png" } }),
   );
   harness.network.set(
+    "/third-party-notices.txt",
+    new Response("Glimmer Grotto third-party notices", {
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    }),
+  );
+  harness.network.set(
     "/assets/app.css",
     new Response("body{}", { headers: { "content-type": "text/css" } }),
   );
@@ -216,8 +222,24 @@ test("first install precaches the complete hashed app shell", async () => {
       `${ORIGIN}/icon-192.png`,
       `${ORIGIN}/icon-512.png`,
       `${ORIGIN}/manifest.webmanifest`,
+      `${ORIGIN}/third-party-notices.txt`,
     ].sort(),
   );
+});
+
+test("the credits notice opens from its own cache while offline", async () => {
+  const harness = createHarness();
+  seedShellNetwork(harness);
+  await harness.dispatchExtendable("install");
+
+  harness.network.set("/third-party-notices.txt", new Error("offline"));
+  const response = await harness.dispatchFetch({
+    method: "GET",
+    mode: "navigate",
+    destination: "document",
+    url: `${ORIGIN}/third-party-notices.txt`,
+  });
+  assert.match(await response.text(), /third-party notices/);
 });
 
 test("the production build's lazy game engine is available on first offline load", async () => {
@@ -251,6 +273,12 @@ test("the production build's lazy game engine is available on first offline load
     "/icon-512.png",
     new Response("icon-512", { headers: { "content-type": "image/png" } }),
   );
+  harness.network.set(
+    "/third-party-notices.txt",
+    new Response("Glimmer Grotto third-party notices", {
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    }),
+  );
 
   const assetDirectory = new URL("../dist/client/assets/", import.meta.url);
   const assetNames = (await readdir(assetDirectory)).filter((name) =>
@@ -282,6 +310,10 @@ test("the production build's lazy game engine is available on first offline load
   assert.ok(
     cachedAssets.some((pathname) => /\/createGame-[^/]+\.js$/.test(pathname)),
     "the lazy Phaser game engine must be precached",
+  );
+  assert.match(
+    await harness.cachedText("/third-party-notices.txt"),
+    /third-party notices/,
   );
 
   harness.network.set("/", new Error("offline"));
