@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.0 — First light
+
+- Added a compact three-step guide to the opening room that follows the
+  player from movement to the first crystal and disappears once the room is
+  restored.
+- Made guide copy adapt to keyboard, pointer, touch, and gamepad input without
+  adding a permanent tutorial or blocking the playfield.
+- Unified toolbar, keyboard, and controller hints so every input path updates
+  the same visible, announced hint card.
+- Tuned controllers with dominant-axis stick handling, drift protection,
+  immediate direction changes, delayed hold repeat, and X/Y focus and hint
+  shortcuts alongside standard A-button action.
+- Focused the game surface when play begins, added a visible focus treatment,
+  and isolated interface controls and dialogs from game keystrokes.
+- Added deterministic controller mapping and repeat-cadence checks, bringing
+  the unit suite to 90 checks.
+
 ## 0.5.0 — Lantern polish
 
 - Reworked short-landscape layouts so the title call to action and playfield fit

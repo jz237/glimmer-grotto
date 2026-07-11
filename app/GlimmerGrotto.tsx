@@ -14,7 +14,9 @@ import type {
   GameCommand,
   GameEvent,
   GameHandle,
+  InputMethod,
   SaveGameV1,
+  TutorialStep,
 } from "./game/contracts";
 import {
   clearSave,
@@ -63,6 +65,20 @@ function Icon({ children }: { children: ReactNode }) {
   return <span aria-hidden="true">{children}</span>;
 }
 
+function movementControl(method: InputMethod): string {
+  if (method === "gamepad") return "Left stick or D-pad";
+  if (method === "touch") return "Direction pad";
+  if (method === "pointer") return "Click an adjacent tile";
+  return "Arrow keys or WASD";
+}
+
+function actionControl(method: InputMethod): string {
+  if (method === "gamepad") return "A button";
+  if (method === "touch") return "Action button";
+  if (method === "pointer") return "Click the nearby object";
+  return "Space, Enter, or E";
+}
+
 function Modal({
   labelledBy,
   className = "",
@@ -85,6 +101,7 @@ function Modal({
       onClose();
     };
     const handleKeyDown = (event: KeyboardEvent) => {
+      event.stopPropagation();
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
@@ -133,6 +150,8 @@ export default function GlimmerGrotto() {
     "Welcome to Glimmer Grotto.",
   );
   const [hintStage, setHintStage] = useState(0);
+  const [inputMethod, setInputMethod] = useState<InputMethod>("keyboard");
+  const [tutorialStep, setTutorialStep] = useState<TutorialStep | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
@@ -229,6 +248,7 @@ export default function GlimmerGrotto() {
       switch (event.type) {
         case "ready":
           setTotalRooms(event.totalRooms);
+          mountRef.current?.focus({ preventScroll: true });
           break;
         case "room":
           setRoom({
@@ -243,6 +263,16 @@ export default function GlimmerGrotto() {
           break;
         case "announce":
           setAnnouncement(event.message);
+          break;
+        case "hint":
+          setHintStage(event.index);
+          setAnnouncement(`Hint ${event.index}: ${event.hint}`);
+          break;
+        case "inputMethod":
+          setInputMethod(event.method);
+          break;
+        case "tutorial":
+          setTutorialStep(event.step);
           break;
         case "progress":
           updateSave((current) => ({
@@ -342,6 +372,7 @@ export default function GlimmerGrotto() {
     sessionStartedRef.current = Date.now();
     setRoom(null);
     setHintStage(0);
+    setTutorialStep(null);
     setScreen("playing");
     setSession((value) => value + 1);
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -364,6 +395,7 @@ export default function GlimmerGrotto() {
     setRestartOpen(false);
     setRoom(null);
     setHintStage(0);
+    setTutorialStep(null);
     setScreen("title");
     setAnnouncement("Journey saved. Back at the grotto entrance.");
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -417,12 +449,7 @@ export default function GlimmerGrotto() {
   };
 
   const revealHint = () => {
-    setHintStage((current) => {
-      const next = Math.min(3, current + 1);
-      const hint = room?.hints[next - 1];
-      if (hint) setAnnouncement(`Hint ${next}: ${hint}`);
-      return next;
-    });
+    dispatch({ type: "hint" });
   };
 
   const install = async () => {
@@ -474,6 +501,7 @@ export default function GlimmerGrotto() {
       setSave(persisted);
       setRoom(null);
       setHintStage(0);
+      setTutorialStep(null);
       setScreen(persisted.journeyComplete ? "complete" : "title");
       setSession((value) => value + 1);
       setStorageNote("Save imported. Close settings to continue.");
@@ -486,6 +514,25 @@ export default function GlimmerGrotto() {
   const completed = save?.completedRooms.length ?? 0;
   const seeds = save?.collectedSeeds.length ?? 0;
   const hasProgress = completed > 0 || (save?.currentRoom ?? 0) > 0;
+  const tutorial = tutorialStep
+    ? {
+        move: {
+          progress: "First light · 1 of 3",
+          title: "Move through the moss",
+          detail: `${movementControl(inputMethod)} to walk one tile at a time.`,
+        },
+        interact: {
+          progress: "First light · 2 of 3",
+          title: "Turn the crystal",
+          detail: `${actionControl(inputMethod)} while standing beside it.`,
+        },
+        follow: {
+          progress: "First light · 3 of 3",
+          title: "Follow the new beam",
+          detail: `Move to its next stop and use ${actionControl(inputMethod).toLowerCase()} again.`,
+        },
+      }[tutorialStep]
+    : null;
   const rootClass = [
     "grotto-shell",
     settings.highContrast ? "is-high-contrast" : "",
@@ -624,7 +671,9 @@ export default function GlimmerGrotto() {
               ref={mountRef}
               className="game-mount"
               role="application"
-              aria-label="Top-down light puzzle. Use arrow keys or WASD to move. Press Space, Enter, or E to interact."
+              tabIndex={0}
+              aria-describedby={tutorial ? "first-room-guide" : undefined}
+              aria-label="Top-down light puzzle. Use arrow keys or WASD, touch controls, or a gamepad to move. Use action to interact."
             />
             {!room && (
               <div className="game-loading" role="status">
@@ -633,27 +682,44 @@ export default function GlimmerGrotto() {
               </div>
             )}
             <div className="game-tools" aria-label="Puzzle tools">
-              <button type="button" onClick={() => dispatch({ type: "focus" })}>
+              <button
+                type="button"
+                disabled={!room}
+                onClick={() => dispatch({ type: "focus" })}
+              >
                 <Icon>◉</Icon> Focus
               </button>
               <button
                 type="button"
+                disabled={!room}
                 onClick={revealHint}
               >
                 <Icon>✦</Icon> Hint
               </button>
-              <button type="button" onClick={() => dispatch({ type: "reset" })}>
+              <button
+                type="button"
+                disabled={!room}
+                onClick={() => dispatch({ type: "reset" })}
+              >
                 <Icon>↺</Icon> Reset
               </button>
             </div>
+            {tutorial && (
+              <aside id="first-room-guide" className="tutorial-card" role="status">
+                <span>{tutorial.progress}</span>
+                <strong>{tutorial.title}</strong>
+                <p>{tutorial.detail}</p>
+              </aside>
+            )}
             <div className="touch-controls" aria-label="Touch controls">
               <div className="touch-dpad">
                 <button
                   type="button"
                   className="touch-up"
-                  onPointerDown={(event) =>
-                    startHeldCommand(event, { type: "move", dx: 0, dy: -1 })
-                  }
+                  onPointerDown={(event) => {
+                    setInputMethod("touch");
+                    startHeldCommand(event, { type: "move", dx: 0, dy: -1 });
+                  }}
                   onPointerUp={stopHeldCommand}
                   onPointerCancel={stopHeldCommand}
                   onLostPointerCapture={stopHeldCommand}
@@ -664,9 +730,10 @@ export default function GlimmerGrotto() {
                 <button
                   type="button"
                   className="touch-left"
-                  onPointerDown={(event) =>
-                    startHeldCommand(event, { type: "move", dx: -1, dy: 0 })
-                  }
+                  onPointerDown={(event) => {
+                    setInputMethod("touch");
+                    startHeldCommand(event, { type: "move", dx: -1, dy: 0 });
+                  }}
                   onPointerUp={stopHeldCommand}
                   onPointerCancel={stopHeldCommand}
                   onLostPointerCapture={stopHeldCommand}
@@ -677,9 +744,10 @@ export default function GlimmerGrotto() {
                 <button
                   type="button"
                   className="touch-right"
-                  onPointerDown={(event) =>
-                    startHeldCommand(event, { type: "move", dx: 1, dy: 0 })
-                  }
+                  onPointerDown={(event) => {
+                    setInputMethod("touch");
+                    startHeldCommand(event, { type: "move", dx: 1, dy: 0 });
+                  }}
                   onPointerUp={stopHeldCommand}
                   onPointerCancel={stopHeldCommand}
                   onLostPointerCapture={stopHeldCommand}
@@ -690,9 +758,10 @@ export default function GlimmerGrotto() {
                 <button
                   type="button"
                   className="touch-down"
-                  onPointerDown={(event) =>
-                    startHeldCommand(event, { type: "move", dx: 0, dy: 1 })
-                  }
+                  onPointerDown={(event) => {
+                    setInputMethod("touch");
+                    startHeldCommand(event, { type: "move", dx: 0, dy: 1 });
+                  }}
                   onPointerUp={stopHeldCommand}
                   onPointerCancel={stopHeldCommand}
                   onLostPointerCapture={stopHeldCommand}
@@ -704,7 +773,10 @@ export default function GlimmerGrotto() {
               <button
                 type="button"
                 className="touch-action"
-                onPointerDown={() => dispatch({ type: "interact" })}
+                onPointerDown={() => {
+                  setInputMethod("touch");
+                  dispatch({ type: "interact" });
+                }}
               >
                 <Icon>✦</Icon>
                 <span>Action</span>
@@ -780,6 +852,10 @@ export default function GlimmerGrotto() {
               <div><kbd>F</kbd><span>Highlight nearby puzzle objects</span></div>
               <div><kbd>H</kbd><span>Hear the next hint</span></div>
               <div><kbd>R</kbd><span>Reset the current room</span></div>
+              <div><kbd>Stick</kbd><kbd>D-pad</kbd><span>Controller movement</span></div>
+              <div><kbd>A</kbd><span>Controller action</span></div>
+              <div><kbd>X</kbd><span>Controller focus glow</span></div>
+              <div><kbd>Y</kbd><span>Controller hint</span></div>
             </div>
             <p className="modal-note">
               There are no timers or fail states. Every choice can be changed,

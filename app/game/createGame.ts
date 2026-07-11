@@ -6,10 +6,17 @@ import type {
   GameCommand,
   GameEvent,
   GameHandle,
+  InputMethod,
   PuzzleState,
   RoomDefinition,
   SaveGameV1,
+  TutorialStep,
 } from "./contracts";
+import {
+  advanceDirectionRepeat,
+  createDirectionRepeatState,
+  readGamepadFrame,
+} from "./input";
 import {
   createInitialPuzzleState,
   ringBell,
@@ -175,9 +182,10 @@ class GlimmerScene extends Phaser.Scene {
   private solved = false;
   private focusMode = false;
   private startedAt = 0;
-  private lastGamepadMove = 0;
-  private lastGamepadAction = false;
+  private gamepadRepeat = createDirectionRepeatState();
+  private gamepadButtons = { action: false, focus: false, hint: false };
   private hintIndex = 0;
+  private tutorialStep: TutorialStep | null = null;
 
   constructor(options: {
     roomIndex: number;
@@ -225,6 +233,9 @@ class GlimmerScene extends Phaser.Scene {
       case "interact":
         this.interact();
         break;
+      case "hint":
+        this.requestHint();
+        break;
       case "reset":
         this.resetRoom();
         break;
@@ -238,9 +249,11 @@ class GlimmerScene extends Phaser.Scene {
         );
         break;
       case "pause":
+        if (this.input.keyboard) this.input.keyboard.enabled = false;
         this.scene.pause();
         break;
       case "resume":
+        if (this.input.keyboard) this.input.keyboard.enabled = true;
         this.scene.resume();
         break;
       case "settings":
@@ -268,6 +281,10 @@ class GlimmerScene extends Phaser.Scene {
     this.solved = false;
     this.focusMode = false;
     this.hintIndex = 0;
+    this.tutorialStep =
+      this.roomIndex === 0 && !this.completedRooms.has(this.room.id)
+        ? "move"
+        : null;
     this.drawRoom();
     this.onEvent({
       type: "room",
@@ -279,6 +296,7 @@ class GlimmerScene extends Phaser.Scene {
       story: this.room.story,
       hints: this.room.hints,
     });
+    this.onEvent({ type: "tutorial", step: this.tutorialStep });
     this.announce(`${this.room.name}. ${this.room.subtitle}`);
   }
 
@@ -290,6 +308,7 @@ class GlimmerScene extends Phaser.Scene {
     if (trace.solved && !this.solved) {
       this.solved = true;
       this.completedRooms.add(this.room.id);
+      this.setTutorialStep(null);
       this.emitProgress(Math.min(this.roomIndex + 1, ROOMS.length - 1));
       this.audio.solve();
       this.announce("The room is restored. Press action to continue deeper.");
@@ -659,6 +678,7 @@ class GlimmerScene extends Phaser.Scene {
       return;
     }
     this.playerCell = next;
+    this.updateTutorialForPosition();
     const world = cellToWorld(next);
     if (!this.player || this.settings.reducedMotion) {
       this.drawRoom();
@@ -777,7 +797,11 @@ class GlimmerScene extends Phaser.Scene {
     if (nearbyCrystal) {
       this.puzzle = rotateCrystal(this.puzzle, nearbyCrystal.id);
       this.audio.rotate();
+      if (this.tutorialStep) this.setTutorialStep("follow");
       this.drawRoom();
+      if (!this.solved) {
+        this.announce("Crystal turned. Follow the beam to its next stopping place.");
+      }
       return;
     }
 
@@ -792,8 +816,44 @@ class GlimmerScene extends Phaser.Scene {
     this.moteAvailable = Boolean(this.room.mote);
     this.solved = false;
     this.hintIndex = 0;
+    this.setTutorialStep(
+      this.roomIndex === 0 && !this.completedRooms.has(this.room.id)
+        ? "move"
+        : null,
+    );
     this.drawRoom();
     this.announce("The room settles back to its starting pattern.");
+  }
+
+  private requestHint(): void {
+    const index = Math.min(this.hintIndex + 1, 3) as 1 | 2 | 3;
+    const hint = this.room.hints[index - 1];
+    this.hintIndex = index;
+    this.onEvent({ type: "hint", index, hint });
+  }
+
+  private setInputMethod(method: InputMethod): void {
+    this.onEvent({ type: "inputMethod", method });
+  }
+
+  private setTutorialStep(step: TutorialStep | null): void {
+    const next =
+      this.roomIndex === 0 && !this.completedRooms.has(this.room.id)
+        ? step
+        : null;
+    if (next === this.tutorialStep) return;
+    this.tutorialStep = next;
+    this.onEvent({ type: "tutorial", step: next });
+  }
+
+  private updateTutorialForPosition(): void {
+    if (
+      this.tutorialStep === "move" &&
+      this.room.crystals.some((crystal) => distance(this.playerCell, crystal) <= 1)
+    ) {
+      this.setTutorialStep("interact");
+      this.announce("You are beside a crystal. Use action to turn it.");
+    }
   }
 
   private emitProgress(currentRoom: number): void {
@@ -810,25 +870,31 @@ class GlimmerScene extends Phaser.Scene {
   }
 
   private onKeyDown(event: KeyboardEvent): void {
+    const target = event.target;
+    if (
+      target instanceof Element &&
+      target.closest("button, input, select, textarea, dialog")
+    ) {
+      return;
+    }
     const code = event.code;
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(code)) {
       event.preventDefault();
     }
-    if (code === "ArrowUp" || code === "KeyW") this.move(0, -1);
-    else if (code === "ArrowDown" || code === "KeyS") this.move(0, 1);
-    else if (code === "ArrowLeft" || code === "KeyA") this.move(-1, 0);
-    else if (code === "ArrowRight" || code === "KeyD") this.move(1, 0);
-    else if (code === "Space" || code === "Enter" || code === "KeyE") this.interact();
-    else if (code === "KeyR") this.resetRoom();
+    this.setInputMethod("keyboard");
+    if (code === "ArrowUp" || code === "KeyW") this.dispatch({ type: "move", dx: 0, dy: -1 });
+    else if (code === "ArrowDown" || code === "KeyS") this.dispatch({ type: "move", dx: 0, dy: 1 });
+    else if (code === "ArrowLeft" || code === "KeyA") this.dispatch({ type: "move", dx: -1, dy: 0 });
+    else if (code === "ArrowRight" || code === "KeyD") this.dispatch({ type: "move", dx: 1, dy: 0 });
+    else if (code === "Space" || code === "Enter" || code === "KeyE") this.dispatch({ type: "interact" });
+    else if (code === "KeyR") this.dispatch({ type: "reset" });
     else if (code === "KeyF") this.dispatch({ type: "focus" });
-    else if (code === "KeyH") {
-      const hint = this.room.hints[Math.min(this.hintIndex, 2)];
-      this.hintIndex = Math.min(this.hintIndex + 1, 2);
-      this.announce(`Hint: ${hint}`);
-    }
+    else if (code === "KeyH") this.dispatch({ type: "hint" });
   }
 
   private onPointerDown(pointer: Phaser.Input.Pointer): void {
+    this.setInputMethod("pointer");
+    this.audio.wake();
     if (this.solved) {
       this.interact();
       return;
@@ -845,24 +911,40 @@ class GlimmerScene extends Phaser.Scene {
   }
 
   private pollGamepad(time: number): void {
-    const gamepad = navigator.getGamepads?.().find(Boolean);
-    if (!gamepad) return;
-    const actionPressed = Boolean(gamepad.buttons[0]?.pressed);
-    if (actionPressed && !this.lastGamepadAction) this.interact();
-    this.lastGamepadAction = actionPressed;
-    if (time - this.lastGamepadMove < 175) return;
-    const x = gamepad.axes[0] ?? 0;
-    const y = gamepad.axes[1] ?? 0;
-    const left = gamepad.buttons[14]?.pressed || x < -0.55;
-    const right = gamepad.buttons[15]?.pressed || x > 0.55;
-    const up = gamepad.buttons[12]?.pressed || y < -0.55;
-    const down = gamepad.buttons[13]?.pressed || y > 0.55;
-    if (left) this.move(-1, 0);
-    else if (right) this.move(1, 0);
-    else if (up) this.move(0, -1);
-    else if (down) this.move(0, 1);
-    else return;
-    this.lastGamepadMove = time;
+    const gamepad = navigator
+      .getGamepads?.()
+      .find((candidate): candidate is Gamepad => Boolean(candidate));
+    if (!gamepad) {
+      this.gamepadRepeat = createDirectionRepeatState();
+      this.gamepadButtons = { action: false, focus: false, hint: false };
+      return;
+    }
+
+    const frame = readGamepadFrame(gamepad);
+    if (frame.direction || frame.action || frame.focus || frame.hint) {
+      this.setInputMethod("gamepad");
+    }
+    if (frame.action && !this.gamepadButtons.action) {
+      this.dispatch({ type: "interact" });
+    }
+    if (frame.focus && !this.gamepadButtons.focus) {
+      this.dispatch({ type: "focus" });
+    }
+    if (frame.hint && !this.gamepadButtons.hint) {
+      this.dispatch({ type: "hint" });
+    }
+    this.gamepadButtons = {
+      action: frame.action,
+      focus: frame.focus,
+      hint: frame.hint,
+    };
+
+    const repeat = advanceDirectionRepeat(frame.direction, time, this.gamepadRepeat);
+    this.gamepadRepeat = repeat.state;
+    if (repeat.move === "left") this.dispatch({ type: "move", dx: -1, dy: 0 });
+    else if (repeat.move === "right") this.dispatch({ type: "move", dx: 1, dy: 0 });
+    else if (repeat.move === "up") this.dispatch({ type: "move", dx: 0, dy: -1 });
+    else if (repeat.move === "down") this.dispatch({ type: "move", dx: 0, dy: 1 });
   }
 }
 

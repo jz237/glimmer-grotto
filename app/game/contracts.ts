@@ -95,9 +95,13 @@ export interface SaveGameV1 {
   journeyComplete: boolean;
 }
 
+export type InputMethod = "keyboard" | "pointer" | "touch" | "gamepad";
+export type TutorialStep = "move" | "interact" | "follow";
+
 export type GameCommand =
   | { type: "move"; dx: -1 | 0 | 1; dy: -1 | 0 | 1 }
   | { type: "interact" }
+  | { type: "hint" }
   | { type: "reset" }
   | { type: "focus" }
   | { type: "pause" }
@@ -117,6 +121,9 @@ export type GameEvent =
       hints: [string, string, string];
     }
   | { type: "announce"; message: string }
+  | { type: "hint"; index: 1 | 2 | 3; hint: string }
+  | { type: "inputMethod"; method: InputMethod }
+  | { type: "tutorial"; step: TutorialStep | null }
   | {
       type: "progress";
       currentRoom: number;
@@ -132,4 +139,3 @@ export interface GameHandle {
   resume(): void;
   destroy(): void;
 }
-
