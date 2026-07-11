@@ -98,7 +98,7 @@ export function findWalkPathAdjacentTo(
   return candidates[0] ?? null;
 }
 
-function interactionOnCell(
+export function interactionTargetOnCell(
   room: RoomDefinition,
   cell: Cell,
 ): InteractionTarget | null {
@@ -120,7 +120,7 @@ export function interactionTargetAt(
   preferredCell?: Cell,
 ): InteractionTarget | null {
   if (preferredCell && distance(player, preferredCell) === 1) {
-    const preferred = interactionOnCell(room, preferredCell);
+    const preferred = interactionTargetOnCell(room, preferredCell);
     if (preferred) return preferred;
   }
   if (room.requiresCharge && distance(player, room.source) <= 1) {

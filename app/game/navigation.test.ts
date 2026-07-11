@@ -3,6 +3,7 @@ import { ROOMS } from "./content";
 import {
   buildRoomPlaythrough,
   interactionTargetAt,
+  interactionTargetOnCell,
   isBlockedCell,
   simulateRoomPlaythrough,
 } from "./navigation";
@@ -94,4 +95,18 @@ describe("complete player navigation traces", () => {
       }
     },
   );
+
+  it("distinguishes an exact clicked object from a blocked wall", () => {
+    const room = ROOMS.find(
+      (candidate) => candidate.crystals.length > 0 && candidate.walls.length > 0,
+    );
+    expect(room).toBeDefined();
+    const crystal = room!.crystals[0];
+    expect(interactionTargetOnCell(room!, crystal)).toEqual({
+      kind: "crystal",
+      id: crystal.id,
+    });
+    expect(interactionTargetOnCell(room!, room!.walls[0])).toBeNull();
+    expect(interactionTargetOnCell(room!, room!.bloom)).toBeNull();
+  });
 });

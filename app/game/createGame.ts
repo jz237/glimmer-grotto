@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+import { AnimationLifecycle } from "./animationLifecycle";
+import { AudioGarden } from "./audio";
 import { biomeArrivalForRoom } from "./biomes";
 import { ROOMS } from "./content";
 import { describeRoomPosition } from "./description";
@@ -20,11 +22,20 @@ import {
   advanceDirectionRepeat,
   createDirectionRepeatState,
   createSuppressedDirectionRepeatState,
+  firstConnectedGamepad,
+  GamepadSessionGuard,
   gamepadMenuRequest,
+  keyboardInputDecision,
+  KeyboardSessionGuard,
+  pointerGridCell,
   readGamepadFrame,
 } from "./input";
 import { mothPose } from "./motion";
-import { interactionTargetAt, isBlockedCell } from "./navigation";
+import {
+  interactionTargetAt,
+  interactionTargetOnCell,
+  isBlockedCell,
+} from "./navigation";
 import { frontierAfterSolve, journeyStart, roomVisitMode } from "./journey";
 import {
   createInitialPuzzleState,
@@ -36,6 +47,11 @@ import {
 } from "./puzzle";
 import { roomMechanicStatus } from "./status";
 import { gameTextSize } from "./text";
+import { RuntimeHandleController } from "./runtimeHandle";
+import {
+  RendererContextGuard,
+  type RendererMode,
+} from "./rendererContext";
 
 const WIDTH = 960;
 const HEIGHT = 540;
@@ -47,6 +63,7 @@ const GLYPHS = ["○", "△", "◇"];
 interface MountOptions {
   parent: HTMLElement;
   save: SaveGameV1;
+  rendererMode: RendererMode;
   onEvent(event: GameEvent): void;
 }
 
@@ -76,105 +93,6 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-class AudioGarden {
-  private context?: AudioContext;
-  private master?: GainNode;
-  private droneGain?: GainNode;
-  private drones: OscillatorNode[] = [];
-  private settings: AccessibilitySettings;
-
-  constructor(settings: AccessibilitySettings) {
-    this.settings = settings;
-  }
-
-  updateSettings(settings: AccessibilitySettings): void {
-    this.settings = settings;
-    if (this.droneGain) {
-      this.droneGain.gain.setTargetAtTime(
-        settings.musicVolume * 0.025,
-        this.context?.currentTime ?? 0,
-        0.15,
-      );
-    }
-  }
-
-  wake(): void {
-    if (!this.context) {
-      this.context = new AudioContext();
-      this.master = this.context.createGain();
-      this.master.gain.value = 0.55;
-      this.master.connect(this.context.destination);
-      this.startDrone();
-    }
-    if (this.context.state === "suspended") {
-      void this.context.resume();
-    }
-  }
-
-  private startDrone(): void {
-    if (!this.context || !this.master || this.drones.length > 0) return;
-    this.droneGain = this.context.createGain();
-    this.droneGain.gain.value = this.settings.musicVolume * 0.025;
-    this.droneGain.connect(this.master);
-    [73.42, 110].forEach((frequency, index) => {
-      const oscillator = this.context!.createOscillator();
-      const gain = this.context!.createGain();
-      oscillator.type = index === 0 ? "sine" : "triangle";
-      oscillator.frequency.value = frequency;
-      gain.gain.value = index === 0 ? 0.75 : 0.22;
-      oscillator.connect(gain);
-      gain.connect(this.droneGain!);
-      oscillator.start();
-      this.drones.push(oscillator);
-    });
-  }
-
-  note(frequency: number, duration = 0.45, strength = 1): void {
-    this.wake();
-    if (!this.context || !this.master || this.settings.effectsVolume <= 0) return;
-    const oscillator = this.context.createOscillator();
-    const gain = this.context.createGain();
-    const now = this.context.currentTime;
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(frequency, now);
-    oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.04, now + duration);
-    gain.gain.setValueAtTime(
-      Math.max(0.0001, this.settings.effectsVolume * 0.08 * strength),
-      now,
-    );
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-    oscillator.connect(gain);
-    gain.connect(this.master);
-    oscillator.start(now);
-    oscillator.stop(now + duration + 0.05);
-  }
-
-  rotate(): void {
-    this.note(330, 0.22, 0.7);
-  }
-
-  collect(): void {
-    this.note(660, 0.35, 0.9);
-    window.setTimeout(() => this.note(880, 0.45, 0.65), 90);
-  }
-
-  solve(): void {
-    [523.25, 659.25, 783.99, 1046.5].forEach((tone, index) => {
-      window.setTimeout(() => this.note(tone, 0.75, 0.9), index * 120);
-    });
-  }
-
-  bump(): void {
-    this.note(145, 0.12, 0.35);
-  }
-
-  destroy(): void {
-    this.drones.forEach((drone) => drone.stop());
-    this.drones = [];
-    void this.context?.close();
-  }
-}
-
 class GlimmerScene extends Phaser.Scene {
   private readonly onEvent: (event: GameEvent) => void;
   private readonly completedRooms: Set<string>;
@@ -194,10 +112,12 @@ class GlimmerScene extends Phaser.Scene {
   private moth?: Phaser.GameObjects.Container;
   private carrying = false;
   private moteAvailable = true;
-  private moving = false;
   private solved = false;
   private focusMode = false;
   private startedAt = 0;
+  private readonly animationLifecycle = new AnimationLifecycle();
+  private readonly gamepadSession = new GamepadSessionGuard();
+  private readonly keyboardSession = new KeyboardSessionGuard();
   private gamepadRepeat = createDirectionRepeatState();
   private gamepadButtons = {
     action: false,
@@ -211,6 +131,11 @@ class GlimmerScene extends Phaser.Scene {
   private hintIndex = 0;
   private tutorialStep: TutorialStep | null = null;
   private biomeArrival: BiomeArrival | null = null;
+  private shutdownComplete = false;
+  private readonly onInputInterrupted = () => {
+    this.gamepadSession.interrupt();
+    this.keyboardSession.interrupt();
+  };
 
   constructor(options: {
     roomIndex: number;
@@ -236,7 +161,13 @@ class GlimmerScene extends Phaser.Scene {
   create(): void {
     this.startedAt = Date.now();
     this.input.keyboard?.on("keydown", this.onKeyDown, this);
+    this.input.keyboard?.on("keyup", this.onKeyUp, this);
     this.input.on("pointerdown", this.onPointerDown, this);
+    document.addEventListener("visibilitychange", this.onInputInterrupted);
+    window.addEventListener("blur", this.onInputInterrupted);
+    window.addEventListener("pagehide", this.onInputInterrupted);
+    window.addEventListener("gamepadconnected", this.onInputInterrupted);
+    window.addEventListener("gamepaddisconnected", this.onInputInterrupted);
     this.synchronizeGamepadAfterPause();
     this.loadRoom(this.roomIndex, this.afterglow);
     this.onEvent({ type: "ready", totalRooms: ROOMS.length });
@@ -299,10 +230,12 @@ class GlimmerScene extends Phaser.Scene {
         );
         break;
       case "pause":
+        this.keyboardSession.interrupt();
         if (this.input.keyboard) this.input.keyboard.enabled = false;
         this.scene.pause();
         break;
       case "resume":
+        this.keyboardSession.interrupt();
         this.synchronizeGamepadAfterPause();
         if (this.input.keyboard) this.input.keyboard.enabled = true;
         this.scene.resume();
@@ -315,9 +248,43 @@ class GlimmerScene extends Phaser.Scene {
     }
   }
 
+  restoreRenderer(): boolean {
+    if (this.shutdownComplete) return false;
+    if (!this.room) return true;
+    try {
+      this.drawRoom();
+      this.emitMechanicStatus();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   shutdown(): void {
-    this.input.keyboard?.off("keydown", this.onKeyDown, this);
-    this.input.off("pointerdown", this.onPointerDown, this);
+    if (this.shutdownComplete) return;
+    this.shutdownComplete = true;
+    this.animationLifecycle.invalidate();
+    try {
+      this.tweens?.killAll();
+    } catch {
+      // Continue through the remaining teardown boundaries.
+    }
+    try {
+      this.input?.keyboard?.off("keydown", this.onKeyDown, this);
+      this.input?.keyboard?.off("keyup", this.onKeyUp, this);
+      this.input?.off("pointerdown", this.onPointerDown, this);
+    } catch {
+      // A pre-boot or partially destroyed input manager has no live controls.
+    }
+    try {
+      document.removeEventListener("visibilitychange", this.onInputInterrupted);
+      window.removeEventListener("blur", this.onInputInterrupted);
+      window.removeEventListener("pagehide", this.onInputInterrupted);
+      window.removeEventListener("gamepadconnected", this.onInputInterrupted);
+      window.removeEventListener("gamepaddisconnected", this.onInputInterrupted);
+    } catch {
+      // Browser globals may already be unavailable during final teardown.
+    }
     this.audio.destroy();
   }
 
@@ -330,7 +297,6 @@ class GlimmerScene extends Phaser.Scene {
     this.facing = { x: 0, y: -1 };
     this.carrying = false;
     this.moteAvailable = Boolean(this.room.mote);
-    this.moving = false;
     this.solved = false;
     this.focusMode = false;
     this.compassActive = false;
@@ -378,6 +344,7 @@ class GlimmerScene extends Phaser.Scene {
   }
 
   private drawRoom(): void {
+    const interruptedMove = this.animationLifecycle.invalidate().moving;
     this.tweens.killAll();
     this.children.removeAll(true);
     const palette = this.room.palette;
@@ -421,6 +388,7 @@ class GlimmerScene extends Phaser.Scene {
     this.drawPlayer();
     this.drawRoomLabel();
     if (this.solved) this.drawSolvedVeil();
+    if (interruptedMove) this.handleLanding();
   }
 
   private drawCaveTexture(graphics: Phaser.GameObjects.Graphics): void {
@@ -797,26 +765,42 @@ class GlimmerScene extends Phaser.Scene {
       alpha: 0,
       duration: 360,
       ease: "Sine.Out",
-      onComplete: () => ring.destroy(),
+      onComplete: () => {
+        if (ring.active) ring.destroy();
+      },
     });
   }
 
   private bumpPlayer(dx: number, dy: number): void {
-    if (this.settings.reducedMotion || !this.player || this.moving) return;
-    const origin = { x: this.player.x, y: this.player.y };
-    this.tweens.add({
-      targets: this.player,
-      x: origin.x + dx * 6,
-      y: origin.y + dy * 6,
-      duration: 48,
-      yoyo: true,
-      ease: "Sine.Out",
-      onComplete: () => this.player?.setPosition(origin.x, origin.y),
-    });
+    if (this.settings.reducedMotion || !this.player) return;
+    const token = this.animationLifecycle.beginBump();
+    if (!token) return;
+    const player = this.player;
+    const origin = { x: player.x, y: player.y };
+    try {
+      this.tweens.add({
+        targets: player,
+        x: origin.x + dx * 6,
+        y: origin.y + dy * 6,
+        duration: 48,
+        yoyo: true,
+        ease: "Sine.Out",
+        onComplete: () => {
+          this.animationLifecycle.complete(token, () => {
+            if (this.player === player && player.active) {
+              player.setPosition(origin.x, origin.y);
+            }
+          });
+        },
+      });
+    } catch {
+      this.animationLifecycle.invalidate();
+      if (player.active) player.setPosition(origin.x, origin.y);
+    }
   }
 
   private move(dx: number, dy: number): void {
-    if (this.solved || this.moving) return;
+    if (this.solved || this.animationLifecycle.busy) return;
     this.clearDescription();
     this.facing = { x: Math.sign(dx), y: Math.sign(dy) };
     const next = { x: this.playerCell.x + dx, y: this.playerCell.y + dy };
@@ -833,18 +817,27 @@ class GlimmerScene extends Phaser.Scene {
       this.handleLanding();
       return;
     }
-    this.moving = true;
-    this.tweens.add({
-      targets: this.player,
-      x: world.x,
-      y: world.y,
-      duration: 115,
-      ease: "Sine.Out",
-      onComplete: () => {
-        this.moving = false;
-        this.handleLanding();
-      },
-    });
+    const token = this.animationLifecycle.beginMove();
+    if (!token) return;
+    const player = this.player;
+    try {
+      this.tweens.add({
+        targets: player,
+        x: world.x,
+        y: world.y,
+        duration: 115,
+        ease: "Sine.Out",
+        onComplete: () => {
+          this.animationLifecycle.complete(token, () => {
+            if (this.player === player && player.active) this.handleLanding();
+          });
+        },
+      });
+    } catch {
+      this.animationLifecycle.invalidate();
+      this.drawRoom();
+      this.handleLanding();
+    }
   }
 
   private handleLanding(): void {
@@ -1100,65 +1093,88 @@ class GlimmerScene extends Phaser.Scene {
     const target = event.target;
     if (
       target instanceof Element &&
-      target.closest("button, input, select, textarea, dialog")
+      target.closest(
+        'button, a[href], input, select, textarea, dialog, [contenteditable="true"], [role="textbox"]',
+      )
     ) {
       return;
     }
-    const code = event.code;
-    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(code)) {
-      event.preventDefault();
-    }
+    const decision = keyboardInputDecision(event);
+    if (!decision) return;
+    if (decision.preventDefault) event.preventDefault();
+    const { intent } = decision;
+    if (
+      !this.keyboardSession.admit(
+        event.code,
+        event.repeat,
+        intent.type === "move",
+      )
+    ) return;
+
     this.setInputMethod("keyboard");
-    if (code === "ArrowUp" || code === "KeyW") this.dispatch({ type: "move", dx: 0, dy: -1 });
-    else if (code === "ArrowDown" || code === "KeyS") this.dispatch({ type: "move", dx: 0, dy: 1 });
-    else if (code === "ArrowLeft" || code === "KeyA") this.dispatch({ type: "move", dx: -1, dy: 0 });
-    else if (code === "ArrowRight" || code === "KeyD") this.dispatch({ type: "move", dx: 1, dy: 0 });
-    else if (code === "Space" || code === "Enter" || code === "KeyE") this.dispatch({ type: "interact" });
-    else if (code === "KeyR") this.dispatch({ type: "reset" });
-    else if (code === "KeyC") this.dispatch({ type: "describe" });
-    else if (code === "KeyF") this.dispatch({ type: "focus" });
-    else if (code === "KeyH") this.dispatch({ type: "hint" });
-    else if (code === "Escape") this.onEvent({ type: "openMenu" });
-    else if (code === "KeyJ") this.onEvent({ type: "openMemories" });
-    else if (code === "KeyM" && !this.biomeArrival) {
+    if (intent.type === "openMenu") this.onEvent({ type: "openMenu" });
+    else if (intent.type === "openMemories") {
+      this.onEvent({ type: "openMemories" });
+    } else if (intent.type === "openMap" && !this.biomeArrival) {
       this.onEvent({ type: "openMap" });
-    }
+    } else if (
+      intent.type !== "openMap"
+    ) this.dispatch(intent);
+  }
+
+  private onKeyUp(event: KeyboardEvent): void {
+    this.keyboardSession.release(event.code);
   }
 
   private onPointerDown(pointer: Phaser.Input.Pointer): void {
+    const target = pointerGridCell(pointer, {
+      left: GRID_LEFT,
+      top: GRID_TOP,
+      cellSize: CELL,
+      minX: 1,
+      maxX: 13,
+      minY: 1,
+      maxY: 7,
+    });
+    if (!target) return;
     this.setInputMethod("pointer");
     this.audio.wake();
     if (this.solved) {
       this.interact();
       return;
     }
-    const gridX = Math.floor((pointer.worldX - GRID_LEFT) / CELL);
-    const gridY = Math.floor((pointer.worldY - GRID_TOP) / CELL);
-    const target = { x: gridX, y: gridY };
     const deltaX = target.x - this.playerCell.x;
     const deltaY = target.y - this.playerCell.y;
     if (Math.abs(deltaX) + Math.abs(deltaY) === 1) {
-      if (isBlockedCell(this.room, target)) this.interact(target);
+      if (interactionTargetOnCell(this.room, target)) this.interact(target);
       else this.move(Math.sign(deltaX), Math.sign(deltaY));
     }
   }
 
   private synchronizeGamepadAfterPause(): void {
-    const gamepad = navigator
-      .getGamepads?.()
-      .find((candidate): candidate is Gamepad => Boolean(candidate));
+    const gamepad = firstConnectedGamepad(navigator.getGamepads?.() ?? []);
     if (!gamepad) {
-      this.gamepadButtons = {
-        action: false,
-        describe: false,
-        focus: false,
-        hint: false,
-        memories: false,
-        menu: false,
-      };
-      this.gamepadRepeat = createDirectionRepeatState();
+      this.resetGamepadConnection();
       return;
     }
+    this.gamepadSession.synchronize(gamepad.index);
+    this.suppressGamepadFrame(gamepad);
+  }
+
+  private resetGamepadConnection(): void {
+    this.gamepadSession.disconnect();
+    this.gamepadButtons = {
+      action: false,
+      describe: false,
+      focus: false,
+      hint: false,
+      memories: false,
+      menu: false,
+    };
+    this.gamepadRepeat = createDirectionRepeatState();
+  }
+
+  private suppressGamepadFrame(gamepad: Gamepad): void {
     const frame = readGamepadFrame(gamepad);
     this.gamepadButtons = {
       action: frame.action,
@@ -1172,19 +1188,13 @@ class GlimmerScene extends Phaser.Scene {
   }
 
   private pollGamepad(time: number): void {
-    const gamepad = navigator
-      .getGamepads?.()
-      .find((candidate): candidate is Gamepad => Boolean(candidate));
+    const gamepad = firstConnectedGamepad(navigator.getGamepads?.() ?? []);
     if (!gamepad) {
-      this.gamepadRepeat = createDirectionRepeatState();
-      this.gamepadButtons = {
-        action: false,
-        describe: false,
-        focus: false,
-        hint: false,
-        memories: false,
-        menu: false,
-      };
+      this.resetGamepadConnection();
+      return;
+    }
+    if (this.gamepadSession.shouldSuppressFrame(gamepad.index)) {
+      this.suppressGamepadFrame(gamepad);
       return;
     }
 
@@ -1266,51 +1276,117 @@ export function mountGame(options: MountOptions): GameHandle {
     onEvent: options.onEvent,
   });
 
-  const game = new Phaser.Game({
-    type: Phaser.AUTO,
-    width: WIDTH,
-    height: HEIGHT,
-    parent: options.parent,
-    backgroundColor: "#071a1a",
-    scene: [scene],
-    render: {
-      antialias: true,
-      roundPixels: true,
-      powerPreference: "low-power",
-    },
-    scale: {
-      mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
+  let game: Phaser.Game;
+  try {
+    game = new Phaser.Game({
+      type: options.rendererMode === "canvas" ? Phaser.CANVAS : Phaser.AUTO,
       width: WIDTH,
       height: HEIGHT,
+      parent: options.parent,
+      backgroundColor: "#071a1a",
+      scene: [scene],
+      render: {
+        antialias: true,
+        roundPixels: true,
+        powerPreference: "low-power",
+      },
+      scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: WIDTH,
+        height: HEIGHT,
+      },
+      input: {
+        keyboard: true,
+        mouse: true,
+        touch: true,
+        gamepad: true,
+      },
+      fps: {
+        target: 60,
+        smoothStep: true,
+      },
+    });
+  } catch (error) {
+    try {
+      scene.shutdown();
+    } catch {
+      // Preserve the construction error as the actionable failure.
+    }
+    try {
+      options.parent.replaceChildren();
+    } catch {
+      // A detached parent has no visible partial renderer to clear.
+    }
+    throw error;
+  }
+
+  const rendererContext = new RendererContextGuard();
+  let detachRendererListeners = () => undefined;
+  const runtime = new RuntimeHandleController<GameCommand>({
+    canDispatch: (command) =>
+      Boolean(scene.sys?.isActive() || command.type === "visit"),
+    dispatch: (command) => scene.dispatch(command),
+    pause: () => {
+      if (!scene.sys?.isActive()) return false;
+      scene.dispatch({ type: "pause" });
+      return true;
     },
-    input: {
-      keyboard: true,
-      mouse: true,
-      touch: true,
-      gamepad: true,
-    },
-    fps: {
-      target: 60,
-      smoothStep: true,
+    resume: () => scene.dispatch({ type: "resume" }),
+    shutdownScene: () => scene.shutdown(),
+    destroyRenderer: () => {
+      rendererContext.destroy();
+      try {
+        detachRendererListeners();
+      } catch {
+        // Renderer destruction below still owns the terminal canvas cleanup.
+      }
+      try {
+        game.destroy(true);
+      } finally {
+        options.parent.replaceChildren();
+      }
     },
   });
 
+  try {
+    const canvas = game.canvas;
+    const contextLost = (event: Event) => {
+      if (!rendererContext.lose(event)) return;
+      runtime.pause();
+      options.onEvent({ type: "rendererState", state: "lost" });
+    };
+    const contextRestored = () => {
+      if (!rendererContext.restore()) return;
+      if (!scene.restoreRenderer()) {
+        rendererContext.lose();
+        options.onEvent({ type: "rendererState", state: "failed" });
+        return;
+      }
+      options.onEvent({ type: "rendererState", state: "restored" });
+    };
+    canvas.addEventListener("webglcontextlost", contextLost);
+    canvas.addEventListener("webglcontextrestored", contextRestored);
+    detachRendererListeners = () => {
+      canvas.removeEventListener("webglcontextlost", contextLost);
+      canvas.removeEventListener("webglcontextrestored", contextRestored);
+    };
+  } catch {
+    // Canvas rendering remains usable when context observation is unavailable.
+  }
+
   return {
     dispatch(command) {
-      if (scene.sys?.isActive() || command.type === "visit") {
-        scene.dispatch(command);
-      }
+      runtime.dispatch(command);
     },
     pause() {
-      if (scene.sys?.isActive()) scene.dispatch({ type: "pause" });
+      runtime.pause();
     },
     resume() {
-      scene.dispatch({ type: "resume" });
+      runtime.resume();
     },
     destroy() {
-      scene.shutdown();
-      game.destroy(true);
+      runtime.destroy();
     },
   };
 }

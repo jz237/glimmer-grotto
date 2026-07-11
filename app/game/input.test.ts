@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   GAMEPAD_INITIAL_REPEAT_MS,
   GAMEPAD_REPEAT_MS,
+  GamepadSessionGuard,
+  KeyboardSessionGuard,
   adjustedRangeValue,
   advanceDirectionRepeat,
   createDirectionRepeatState,
   createSuppressedDirectionRepeatState,
+  firstConnectedGamepad,
   gamepadMenuRequest,
+  keyboardInputDecision,
   nextDialogFocusIndex,
+  pointerGridCell,
   readGamepadFrame,
   type GamepadLike,
 } from "./input";
@@ -21,6 +26,21 @@ function gamepad(
     buttons: Array.from({ length: 16 }, (_, index) => ({
       pressed: pressedButtons.includes(index),
     })),
+  };
+}
+
+function keyboard(
+  code: string,
+  overrides: Partial<Parameters<typeof keyboardInputDecision>[0]> = {},
+) {
+  return {
+    code,
+    repeat: false,
+    isComposing: false,
+    altKey: false,
+    ctrlKey: false,
+    metaKey: false,
+    ...overrides,
   };
 }
 
@@ -91,6 +111,150 @@ describe("controller input", () => {
     const released = advanceDirectionRepeat(null, 10_001, suppressed);
     expect(released.state).toEqual(createDirectionRepeatState());
     expect(advanceDirectionRepeat("down", 10_002, released.state).move).toBe("down");
+  });
+
+  it("suppresses the first frame after interruption or controller identity changes", () => {
+    const guard = new GamepadSessionGuard();
+    expect(guard.shouldSuppressFrame(0)).toBe(true);
+    expect(guard.shouldSuppressFrame(0)).toBe(false);
+
+    guard.interrupt();
+    expect(guard.shouldSuppressFrame(0)).toBe(true);
+    expect(guard.shouldSuppressFrame(0)).toBe(false);
+
+    expect(guard.shouldSuppressFrame(2)).toBe(true);
+    expect(guard.shouldSuppressFrame(2)).toBe(false);
+
+    guard.disconnect();
+    expect(guard.shouldSuppressFrame(2)).toBe(true);
+  });
+
+  it("keeps keyboard and controller input neutral through repeated blockers", () => {
+    const keyboardGuard = new KeyboardSessionGuard();
+    expect(keyboardGuard.admit("KeyW", false, true)).toBe(true);
+    keyboardGuard.interrupt();
+    keyboardGuard.interrupt();
+    expect(keyboardGuard.admit("KeyW", true, true)).toBe(false);
+
+    const gamepadGuard = new GamepadSessionGuard();
+    expect(gamepadGuard.shouldSuppressFrame(0)).toBe(true);
+    gamepadGuard.interrupt();
+    gamepadGuard.interrupt();
+    expect(gamepadGuard.shouldSuppressFrame(0)).toBe(true);
+    expect(gamepadGuard.shouldSuppressFrame(0)).toBe(false);
+
+    const held = createSuppressedDirectionRepeatState("left");
+    expect(advanceDirectionRepeat("left", 20_000, held).move).toBeNull();
+    const neutral = advanceDirectionRepeat(null, 20_001, held);
+    expect(advanceDirectionRepeat("left", 20_002, neutral.state).move).toBe(
+      "left",
+    );
+  });
+
+  it("skips stale disconnected slots when choosing a controller", () => {
+    const disconnected = { ...gamepad(), index: 0, connected: false };
+    const connected = { ...gamepad(), index: 1, connected: true };
+    expect(firstConnectedGamepad([disconnected, null, connected])).toBe(connected);
+    expect(firstConnectedGamepad([disconnected, null])).toBeUndefined();
+  });
+
+  it("maps keyboard commands and reserves scrolling keys", () => {
+    expect(keyboardInputDecision(keyboard("ArrowUp"))).toEqual({
+      intent: { type: "move", dx: 0, dy: -1 },
+      preventDefault: true,
+    });
+    expect(keyboardInputDecision(keyboard("KeyD"))?.intent).toEqual({
+      type: "move",
+      dx: 1,
+      dy: 0,
+    });
+    expect(keyboardInputDecision(keyboard("Space"))).toEqual({
+      intent: { type: "interact" },
+      preventDefault: true,
+    });
+    expect(keyboardInputDecision(keyboard("KeyR"))?.intent).toEqual({
+      type: "reset",
+    });
+    expect(keyboardInputDecision(keyboard("KeyM"))?.intent).toEqual({
+      type: "openMap",
+    });
+    expect(keyboardInputDecision(keyboard("KeyQ"))).toBeNull();
+  });
+
+  it("rejects browser shortcuts, composition, and already-handled keys", () => {
+    expect(keyboardInputDecision(keyboard("KeyR", { ctrlKey: true }))).toBeNull();
+    expect(keyboardInputDecision(keyboard("KeyW", { metaKey: true }))).toBeNull();
+    expect(keyboardInputDecision(keyboard("ArrowLeft", { altKey: true }))).toBeNull();
+    expect(keyboardInputDecision(keyboard("KeyE", { isComposing: true }))).toBeNull();
+    expect(keyboardInputDecision(keyboard("KeyE", { keyCode: 229 }))).toBeNull();
+    expect(
+      keyboardInputDecision(keyboard("Space", { defaultPrevented: true })),
+    ).toBeNull();
+  });
+
+  it("admits movement repeat only after a fresh focused keydown", () => {
+    const guard = new KeyboardSessionGuard();
+    expect(guard.admit("KeyW", false, true)).toBe(true);
+    expect(guard.admit("KeyW", false, true)).toBe(false);
+    expect(guard.admit("KeyW", true, true)).toBe(true);
+    expect(guard.admit("KeyE", false, false)).toBe(true);
+    expect(guard.admit("KeyE", true, false)).toBe(false);
+
+    guard.release("KeyW");
+    expect(guard.admit("KeyW", true, true)).toBe(false);
+    expect(guard.admit("KeyW", false, true)).toBe(true);
+    guard.interrupt();
+    expect(guard.admit("KeyW", true, true)).toBe(false);
+  });
+
+  it("maps finite primary world coordinates to bounded grid cells", () => {
+    const geometry = {
+      left: 120,
+      top: 54,
+      cellSize: 48,
+      minX: 1,
+      maxX: 13,
+      minY: 1,
+      maxY: 7,
+    };
+    const primary = { button: 0, primaryDown: true };
+    expect(
+      pointerGridCell(
+        { ...primary, worldX: 120 + 4 * 48 + 24, worldY: 54 + 3 * 48 + 24 },
+        geometry,
+      ),
+    ).toEqual({ x: 4, y: 3 });
+    expect(
+      pointerGridCell(
+        { ...primary, worldX: 120 + 48, worldY: 54 + 48 },
+        geometry,
+      ),
+    ).toEqual({ x: 1, y: 1 });
+    expect(
+      pointerGridCell(
+        { ...primary, worldX: 120 + 14 * 48 - 0.001, worldY: 54 + 8 * 48 - 0.001 },
+        geometry,
+      ),
+    ).toEqual({ x: 13, y: 7 });
+  });
+
+  it("rejects secondary, released, invalid, and out-of-grid pointer samples", () => {
+    const geometry = {
+      left: 120,
+      top: 54,
+      cellSize: 48,
+      minX: 1,
+      maxX: 13,
+      minY: 1,
+      maxY: 7,
+    };
+    const sample = { worldX: 216, worldY: 150, button: 0, primaryDown: true };
+    expect(pointerGridCell({ ...sample, button: 2 }, geometry)).toBeNull();
+    expect(pointerGridCell({ ...sample, primaryDown: false }, geometry)).toBeNull();
+    expect(pointerGridCell({ ...sample, worldX: Number.NaN }, geometry)).toBeNull();
+    expect(pointerGridCell({ ...sample, worldY: Number.POSITIVE_INFINITY }, geometry)).toBeNull();
+    expect(pointerGridCell({ ...sample, worldX: 120 + 14 * 48 }, geometry)).toBeNull();
+    expect(pointerGridCell(sample, { ...geometry, cellSize: 0 })).toBeNull();
   });
 
   it("adjusts controller-operated ranges by their declared step and clamps", () => {

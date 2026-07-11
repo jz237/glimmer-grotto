@@ -1,5 +1,5 @@
 GLIMMER GROTTO THIRD-PARTY NOTICES
-Release 0.20.0
+Release 0.50.0
 
 This file lists third-party software distributed with the production build of
 Glimmer Grotto. The notices below apply only to the listed components.

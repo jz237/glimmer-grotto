@@ -1,10 +1,25 @@
-# Private release runbook
+# Release runbook
 
 Glimmer Grotto releases stay owner-only until a separate, explicit public
 launch decision. A release is complete only when source provenance, the
 deployable archive, production status, edge bytes, and access policy all agree.
 
-## Release
+## Public arcade release
+
+Use this path only after an explicit public-launch request.
+
+1. Run `npm run lint` and `npm test` from a cleanly understood worktree.
+2. Build the nested-path-safe artifact with `npm run build:pages`.
+3. Replace only `games/2026-06-10/glimmer-grotto/` in `jz237/jez237-site`
+   with the exact contents of `dist-pages`.
+4. Keep the existing `/games/` catalog entry and update its description when
+   the shipped game has materially changed.
+5. Review the scoped diff, merge through GitHub, and wait for the Pages mirror
+   workflow to succeed.
+6. Verify the arcade card, game shell, hashed assets, manifest, notices, and
+   release certificate at their public `jez237.com` URLs.
+
+## Private Sites release
 
 1. Run `npm run lint` and `npm test` from a clean worktree.
 2. Commit the reviewed state and push that exact commit to the Sites source

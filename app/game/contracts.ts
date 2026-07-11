@@ -170,6 +170,7 @@ export type GameEvent =
       collectedSeeds: string[];
     }
   | { type: "journeyComplete" }
+  | { type: "rendererState"; state: "lost" | "restored" | "failed" }
   | { type: "error"; message: string };
 
 export interface GameHandle {
