@@ -30,6 +30,7 @@ test("server-renders the finished Glimmer Grotto shell", async () => {
   assert.match(html, /Enter the grotto|Continue journey/);
   assert.match(html, /No fail states/);
   assert.match(html, /manifest\.webmanifest/);
+  assert.match(html, /icon-192\.png/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Starter Project/);
 });
 
@@ -40,8 +41,14 @@ test("ships the PWA files and removes the disposable starter", async () => {
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
   assert.equal(JSON.parse(manifest).name, "Glimmer Grotto");
-  assert.match(worker, /glimmer-grotto-v1/);
+  const parsedManifest = JSON.parse(manifest);
+  assert.deepEqual(
+    parsedManifest.icons.map((icon) => icon.sizes),
+    ["192x192", "512x512"],
+  );
+  assert.match(worker, /glimmer-grotto-v2/);
+  assert.match(worker, /SKIP_WAITING/);
+  assert.match(worker, /url\.searchParams\.has\("_rsc"\)/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   await assert.rejects(access(new URL("../app/_sites-preview/SkeletonPreview.tsx", root)));
 });
-

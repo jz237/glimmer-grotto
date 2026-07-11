@@ -12,7 +12,6 @@ import type {
 } from "./contracts";
 import {
   createInitialPuzzleState,
-  keyOf,
   ringBell,
   rotateCrystal,
   sameCell,
@@ -930,4 +929,3 @@ export function mountGame(options: MountOptions): GameHandle {
     },
   };
 }
-

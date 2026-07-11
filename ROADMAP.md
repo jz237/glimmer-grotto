@@ -12,8 +12,10 @@ quality, performance, then cosmetic polish.
   abstraction, PWA shell, and automated validation.
 - **Playable campaign — complete:** five biomes, 20 required rooms, 15 secrets,
   progressive hints, environmental story, procedural sound, and ending.
-- **Vertical-slice polish — active:** structured human playthroughs, controller
-  tuning, mobile ergonomics, animation refinement, and first-session pacing.
+- **Vertical-slice polish — active:** short-landscape and touch ergonomics,
+  dialog accessibility, restart safety, save reconciliation, PWA update safety,
+  and recorded room traces are complete. Structured human playthroughs,
+  controller tuning, animation refinement, and first-session pacing remain.
 - **Alpha:** refine all biome identities, improve narrative transitions, add
   recorded completion traces, and tune room order from playtest observations.
 - **Beta:** content freeze, accessibility audit, current/previous browser matrix,
@@ -27,4 +29,3 @@ No multiplayer, accounts, cloud saves, backend, behavioral analytics,
 monetization, native storefronts, custom domain, or public access change is
 added without a new explicit decision. Dependency upgrades are reviewed
 quarterly and must pass the complete test suite before release.
-

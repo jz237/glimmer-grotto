@@ -21,8 +21,8 @@ export async function generateMetadata(): Promise<Metadata> {
     applicationName: "Glimmer Grotto",
     manifest: "/manifest.webmanifest",
     icons: {
-      icon: [{ url: "/icon.png", type: "image/png", sizes: "1254x1254" }],
-      apple: [{ url: "/icon.png", type: "image/png", sizes: "1254x1254" }],
+      icon: [{ url: "/icon-192.png", type: "image/png", sizes: "192x192" }],
+      apple: [{ url: "/icon-512.png", type: "image/png", sizes: "512x512" }],
     },
     openGraph: {
       title: "Glimmer Grotto",
@@ -32,8 +32,8 @@ export async function generateMetadata(): Promise<Metadata> {
       images: [
         {
           url: new URL("/og.png", metadataBase).href,
-          width: 1731,
-          height: 909,
+          width: 1200,
+          height: 630,
           alt: "Mica and Luma entering the luminous Glimmer Grotto",
         },
       ],

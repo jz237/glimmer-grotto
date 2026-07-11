@@ -7,6 +7,7 @@ import {
   importSave,
   loadSave,
   persistSave,
+  reconcileCompletion,
   type StorageLike,
 } from "./save";
 
@@ -20,6 +21,18 @@ class MemoryStorage implements StorageLike {
   }
   removeItem(key: string) {
     this.values.delete(key);
+  }
+}
+
+class ThrowingStorage implements StorageLike {
+  getItem(): string | null {
+    throw new Error("storage blocked");
+  }
+  setItem(): void {
+    throw new Error("storage blocked");
+  }
+  removeItem(): void {
+    throw new Error("storage blocked");
   }
 }
 
@@ -56,5 +69,27 @@ describe("local save safety", () => {
     expect(fresh.currentRoom).toBe(0);
     expect(storage.values.size).toBe(0);
   });
-});
 
+  it("keeps the game playable when browser storage is unavailable", () => {
+    const storage = new ThrowingStorage();
+    const fresh = loadSave(storage);
+    expect(fresh.currentRoom).toBe(0);
+    expect(() => persistSave(storage, fresh)).not.toThrow();
+    expect(() => clearSave(storage)).not.toThrow();
+    expect(loadSave(null).currentRoom).toBe(0);
+    expect(() => persistSave(null, fresh)).not.toThrow();
+    expect(() => clearSave(null)).not.toThrow();
+  });
+
+  it("repairs a save that completed every room before the ending flag persisted", () => {
+    const save = {
+      ...createFreshSave(),
+      currentRoom: 19,
+      completedRooms: Array.from({ length: 20 }, (_, index) => `room-${index}`),
+    };
+    const reconciled = reconcileCompletion(save, 20);
+    expect(reconciled.journeyComplete).toBe(true);
+    expect(reconciled.currentRoom).toBe(19);
+    expect(reconcileCompletion(createFreshSave(), 20).journeyComplete).toBe(false);
+  });
+});

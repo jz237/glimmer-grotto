@@ -5,6 +5,8 @@ import {
   createSolvedPuzzleState,
   keyOf,
   ringBell,
+  rotateCrystal,
+  toggleTide,
   traceBeam,
 } from "./puzzle";
 
@@ -21,6 +23,26 @@ describe("Glimmer Grotto room content", () => {
     (_id, room) => {
       expect(traceBeam(room, createInitialPuzzleState(room)).solved).toBe(false);
       expect(traceBeam(room, createSolvedPuzzleState(room)).solved).toBe(true);
+    },
+  );
+
+  it.each(ROOMS.map((room) => [room.id, room] as const))(
+    "%s completes through its recorded player-action sequence",
+    (_id, room) => {
+      let state = createInitialPuzzleState(room);
+      if (room.requiresCharge) state = { ...state, charged: true };
+      for (const bellId of room.bellSequence ?? []) {
+        state = ringBell(room, state, bellId).state;
+      }
+      if (room.requiredTide && state.tide !== room.requiredTide) {
+        state = toggleTide(state);
+      }
+      for (const crystal of room.crystals) {
+        if (state.rotations[crystal.id] !== crystal.solution) {
+          state = rotateCrystal(state, crystal.id);
+        }
+      }
+      expect(traceBeam(room, state).solved).toBe(true);
     },
   );
 

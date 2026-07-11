@@ -20,6 +20,34 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
+type OptionalStorage = StorageLike | null | undefined;
+
+function safeGet(storage: OptionalStorage, key: string): string | null {
+  try {
+    return storage?.getItem(key) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function safeSet(storage: OptionalStorage, key: string, value: string): boolean {
+  try {
+    if (!storage) return false;
+    storage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function safeRemove(storage: OptionalStorage, key: string): void {
+  try {
+    storage?.removeItem(key);
+  } catch {
+    // Storage can be unavailable in hardened or private browser contexts.
+  }
+}
+
 export function createFreshSave(now = new Date()): SaveGameV1 {
   const timestamp = now.toISOString();
   return {
@@ -68,37 +96,51 @@ export function parseSave(raw: string): SaveGameV1 | null {
   }
 }
 
-export function loadSave(storage: StorageLike): SaveGameV1 {
-  const primary = storage.getItem(SAVE_KEY);
+export function loadSave(storage: OptionalStorage): SaveGameV1 {
+  const primary = safeGet(storage, SAVE_KEY);
   if (primary) {
     const parsed = parseSave(primary);
     if (parsed) return parsed;
   }
-  const backup = storage.getItem(BACKUP_KEY);
+  const backup = safeGet(storage, BACKUP_KEY);
   if (backup) {
     const parsed = parseSave(backup);
     if (parsed) {
-      storage.setItem(SAVE_KEY, JSON.stringify(parsed));
+      safeSet(storage, SAVE_KEY, JSON.stringify(parsed));
       return parsed;
     }
   }
   return createFreshSave();
 }
 
-export function persistSave(storage: StorageLike, save: SaveGameV1): SaveGameV1 {
+export function persistSave(storage: OptionalStorage, save: SaveGameV1): SaveGameV1 {
   const next = { ...save, updatedAt: new Date().toISOString() };
-  const current = storage.getItem(SAVE_KEY);
+  const current = safeGet(storage, SAVE_KEY);
   if (current && parseSave(current)) {
-    storage.setItem(BACKUP_KEY, current);
+    safeSet(storage, BACKUP_KEY, current);
   }
-  storage.setItem(SAVE_KEY, JSON.stringify(next));
+  safeSet(storage, SAVE_KEY, JSON.stringify(next));
   return next;
 }
 
-export function clearSave(storage: StorageLike): SaveGameV1 {
-  storage.removeItem(SAVE_KEY);
-  storage.removeItem(BACKUP_KEY);
+export function clearSave(storage: OptionalStorage): SaveGameV1 {
+  safeRemove(storage, SAVE_KEY);
+  safeRemove(storage, BACKUP_KEY);
   return createFreshSave();
+}
+
+export function reconcileCompletion(
+  save: SaveGameV1,
+  totalRooms: number,
+): SaveGameV1 {
+  if (save.journeyComplete || save.completedRooms.length < totalRooms) {
+    return save;
+  }
+  return {
+    ...save,
+    journeyComplete: true,
+    currentRoom: Math.max(0, totalRooms - 1),
+  };
 }
 
 export function exportSave(save: SaveGameV1): string {
@@ -110,4 +152,3 @@ export function importSave(raw: string): SaveGameV1 {
   if (!parsed) throw new Error("That file is not a valid Glimmer Grotto save.");
   return parsed;
 }
-

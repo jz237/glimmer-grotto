@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import type {
@@ -22,9 +23,27 @@ import {
   importSave,
   loadSave,
   persistSave,
+  reconcileCompletion,
 } from "./game/save";
 
 type Screen = "title" | "playing" | "complete";
+const TOTAL_ROOMS = 20;
+
+type GameModule = typeof import("./game/createGame");
+let gameModulePromise: Promise<GameModule> | undefined;
+
+function preloadGameModule(): Promise<GameModule> {
+  gameModulePromise ??= import("./game/createGame");
+  return gameModulePromise;
+}
+
+function browserStorage(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 interface RoomInfo {
   index: number;
@@ -44,34 +63,128 @@ function Icon({ children }: { children: ReactNode }) {
   return <span aria-hidden="true">{children}</span>;
 }
 
+function Modal({
+  labelledBy,
+  className = "",
+  onClose,
+  children,
+}: {
+  labelledBy: string;
+  className?: string;
+  onClose(): void;
+  children: ReactNode;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const handleCancel = (event: Event) => {
+      event.preventDefault();
+      onClose();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    dialog.addEventListener("cancel", handleCancel);
+    dialog.addEventListener("keydown", handleKeyDown);
+    if (!dialog.open) dialog.showModal();
+    dialog.querySelector<HTMLElement>("button, input, select, textarea, [tabindex]")?.focus();
+    return () => {
+      dialog.removeEventListener("cancel", handleCancel);
+      dialog.removeEventListener("keydown", handleKeyDown);
+      if (dialog.open) dialog.close();
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="modal-dialog"
+      aria-labelledby={labelledBy}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section className={`modal-panel ${className}`.trim()}>{children}</section>
+    </dialog>
+  );
+}
+
 export default function GlimmerGrotto() {
   const mountRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<GameHandle | null>(null);
   const saveRef = useRef<SaveGameV1 | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sessionStartedRef = useRef(0);
+  const holdDelayRef = useRef<number | null>(null);
+  const holdIntervalRef = useRef<number | null>(null);
   const [save, setSave] = useState<SaveGameV1 | null>(null);
   const [screen, setScreen] = useState<Screen>("title");
   const [session, setSession] = useState(0);
   const [room, setRoom] = useState<RoomInfo | null>(null);
-  const [totalRooms, setTotalRooms] = useState(20);
+  const [totalRooms, setTotalRooms] = useState(TOTAL_ROOMS);
   const [announcement, setAnnouncement] = useState(
     "Welcome to Glimmer Grotto.",
   );
   const [hintStage, setHintStage] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [restartOpen, setRestartOpen] = useState(false);
+  const [updateReady, setUpdateReady] = useState(false);
   const [installPrompt, setInstallPrompt] =
     useState<InstallPromptEvent | null>(null);
   const [storageNote, setStorageNote] = useState("");
 
   useEffect(() => {
-    const loaded = loadSave(window.localStorage);
-    saveRef.current = loaded;
-    setSave(loaded);
+    const storage = browserStorage();
+    const loaded = loadSave(storage);
+    const reconciled = reconcileCompletion(loaded, TOTAL_ROOMS);
+    const initialSave = reconciled === loaded
+      ? loaded
+      : persistSave(storage, reconciled);
+    saveRef.current = initialSave;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setSave(initialSave);
+      if (initialSave.journeyComplete) setScreen("complete");
+      if (!storage) {
+        setStorageNote(
+          "Autosave is unavailable in this browser context. Export a save before leaving.",
+        );
+      }
+    });
 
-    if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    let registration: ServiceWorkerRegistration | undefined;
+    const updateFound = () => {
+      const worker = registration?.installing;
+      if (!worker) return;
+      worker.addEventListener("statechange", () => {
+        if (worker.state === "installed" && navigator.serviceWorker.controller) {
+          setUpdateReady(true);
+        }
+      });
+    };
+    const productionHost =
+      location.protocol === "https:" &&
+      location.hostname !== "localhost" &&
+      location.hostname !== "127.0.0.1";
+    if (productionHost && "serviceWorker" in navigator) {
+      void navigator.serviceWorker
+        .register("/sw.js")
+        .then((value) => {
+          registration = value;
+          if (registration.waiting) setUpdateReady(true);
+          registration.addEventListener("updatefound", updateFound);
+          void registration.update();
+        })
+        .catch(() => undefined);
     }
 
     const captureInstallPrompt = (event: Event) => {
@@ -79,8 +192,11 @@ export default function GlimmerGrotto() {
       setInstallPrompt(event as InstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", captureInstallPrompt);
-    return () =>
+    return () => {
+      cancelled = true;
+      registration?.removeEventListener("updatefound", updateFound);
       window.removeEventListener("beforeinstallprompt", captureInstallPrompt);
+    };
   }, []);
 
   useEffect(() => {
@@ -100,7 +216,7 @@ export default function GlimmerGrotto() {
           ...baseline,
           playTimeMs: baseline.playTimeMs + elapsed,
         });
-        const persisted = persistSave(window.localStorage, next);
+        const persisted = persistSave(browserStorage(), next);
         saveRef.current = persisted;
         return persisted;
       });
@@ -157,7 +273,7 @@ export default function GlimmerGrotto() {
     if (screen !== "playing" || !mountRef.current || !saveRef.current) return;
     let cancelled = false;
     const parent = mountRef.current;
-    void import("./game/createGame")
+    void preloadGameModule()
       .then(({ mountGame }) => {
         if (cancelled || !saveRef.current) return;
         gameRef.current = mountGame({
@@ -183,18 +299,43 @@ export default function GlimmerGrotto() {
     if (screen !== "playing") return;
     const onVisibility = () => {
       if (document.hidden) gameRef.current?.pause();
-      else if (!settingsOpen && !helpOpen) gameRef.current?.resume();
+      else if (!settingsOpen && !helpOpen && !restartOpen) gameRef.current?.resume();
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [helpOpen, screen, settingsOpen]);
+  }, [helpOpen, restartOpen, screen, settingsOpen]);
 
-  const dispatch = (command: GameCommand) => gameRef.current?.dispatch(command);
+  const dispatch = useCallback(
+    (command: GameCommand) => gameRef.current?.dispatch(command),
+    [],
+  );
+
+  const stopHeldCommand = useCallback(() => {
+    if (holdDelayRef.current !== null) window.clearTimeout(holdDelayRef.current);
+    if (holdIntervalRef.current !== null) window.clearInterval(holdIntervalRef.current);
+    holdDelayRef.current = null;
+    holdIntervalRef.current = null;
+  }, []);
+
+  const startHeldCommand = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>, command: GameCommand) => {
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      stopHeldCommand();
+      dispatch(command);
+      holdDelayRef.current = window.setTimeout(() => {
+        holdIntervalRef.current = window.setInterval(() => dispatch(command), 135);
+      }, 285);
+    },
+    [dispatch, stopHeldCommand],
+  );
+
+  useEffect(() => stopHeldCommand, [stopHeldCommand]);
 
   const begin = (fresh: boolean) => {
     let next = saveRef.current ?? createFreshSave();
     if (fresh) {
-      next = clearSave(window.localStorage);
+      next = clearSave(browserStorage());
       saveRef.current = next;
       setSave(next);
     }
@@ -203,6 +344,29 @@ export default function GlimmerGrotto() {
     setHintStage(0);
     setScreen("playing");
     setSession((value) => value + 1);
+    window.scrollTo({ top: 0, behavior: "auto" });
+    void preloadGameModule();
+  };
+
+  const enterJourney = () => {
+    if (saveRef.current?.journeyComplete) {
+      setScreen("complete");
+      return;
+    }
+    begin(false);
+  };
+
+  const returnToTitle = () => {
+    if (screen === "playing") updateSave((current) => current);
+    gameRef.current?.pause();
+    setSettingsOpen(false);
+    setHelpOpen(false);
+    setRestartOpen(false);
+    setRoom(null);
+    setHintStage(0);
+    setScreen("title");
+    setAnnouncement("Journey saved. Back at the grotto entrance.");
+    window.scrollTo({ top: 0, behavior: "auto" });
   };
 
   const updateSettings = (changes: Partial<AccessibilitySettings>) => {
@@ -217,24 +381,48 @@ export default function GlimmerGrotto() {
     dispatch({ type: "settings", settings: nextSettings });
   };
 
-  const openSettings = () => {
+  const openSettings = useCallback(() => {
     gameRef.current?.pause();
     setSettingsOpen(true);
-  };
+  }, []);
 
-  const closeSettings = () => {
+  const closeSettings = useCallback(() => {
     setSettingsOpen(false);
-    if (!helpOpen) gameRef.current?.resume();
-  };
+    gameRef.current?.resume();
+  }, []);
 
-  const openHelp = () => {
+  const openHelp = useCallback(() => {
     gameRef.current?.pause();
     setHelpOpen(true);
+  }, []);
+
+  const closeHelp = useCallback(() => {
+    setHelpOpen(false);
+    gameRef.current?.resume();
+  }, []);
+
+  const requestRestart = useCallback(() => {
+    gameRef.current?.pause();
+    setRestartOpen(true);
+  }, []);
+
+  const closeRestart = useCallback(() => {
+    setRestartOpen(false);
+    gameRef.current?.resume();
+  }, []);
+
+  const confirmRestart = () => {
+    setRestartOpen(false);
+    begin(true);
   };
 
-  const closeHelp = () => {
-    setHelpOpen(false);
-    if (!settingsOpen) gameRef.current?.resume();
+  const revealHint = () => {
+    setHintStage((current) => {
+      const next = Math.min(3, current + 1);
+      const hint = room?.hints[next - 1];
+      if (hint) setAnnouncement(`Hint ${next}: ${hint}`);
+      return next;
+    });
   };
 
   const install = async () => {
@@ -242,6 +430,20 @@ export default function GlimmerGrotto() {
     await installPrompt.prompt();
     await installPrompt.userChoice;
     setInstallPrompt(null);
+  };
+
+  const applyUpdate = async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration?.waiting) {
+      location.reload();
+      return;
+    }
+    navigator.serviceWorker.addEventListener(
+      "controllerchange",
+      () => location.reload(),
+      { once: true },
+    );
+    registration.waiting.postMessage({ type: "SKIP_WAITING" });
   };
 
   const downloadSave = () => {
@@ -263,11 +465,18 @@ export default function GlimmerGrotto() {
     event.target.value = "";
     if (!file) return;
     try {
-      const imported = importSave(await file.text());
-      const persisted = persistSave(window.localStorage, imported);
+      const imported = reconcileCompletion(
+        importSave(await file.text()),
+        TOTAL_ROOMS,
+      );
+      const persisted = persistSave(browserStorage(), imported);
       saveRef.current = persisted;
       setSave(persisted);
-      setStorageNote("Save imported. Continue to use it.");
+      setRoom(null);
+      setHintStage(0);
+      setScreen(persisted.journeyComplete ? "complete" : "title");
+      setSession((value) => value + 1);
+      setStorageNote("Save imported. Close settings to continue.");
     } catch (error) {
       setStorageNote(error instanceof Error ? error.message : "Save import failed.");
     }
@@ -296,8 +505,8 @@ export default function GlimmerGrotto() {
         <button
           type="button"
           className="brand-lockup"
-          onClick={() => screen === "title" && setAnnouncement("Glimmer Grotto")}
-          aria-label="Glimmer Grotto home"
+          onClick={returnToTitle}
+          aria-label={screen === "title" ? "Glimmer Grotto home" : "Return to title"}
         >
           <span className="brand-mark" aria-hidden="true">
             <span />
@@ -305,6 +514,11 @@ export default function GlimmerGrotto() {
           <span>Glimmer Grotto</span>
         </button>
         <div className="topbar-actions">
+          {updateReady && (
+            <button type="button" className="quiet-button" onClick={applyUpdate}>
+              <Icon>↻</Icon> Update ready
+            </button>
+          )}
           {installPrompt && (
             <button type="button" className="quiet-button" onClick={install}>
               <Icon>↓</Icon> Install
@@ -338,16 +552,22 @@ export default function GlimmerGrotto() {
               <button
                 type="button"
                 className="primary-button"
-                onClick={() => begin(false)}
+                onClick={enterJourney}
+                onPointerEnter={() => void preloadGameModule()}
+                onFocus={() => void preloadGameModule()}
               >
                 <Icon>✦</Icon>
-                {hasProgress ? "Continue journey" : "Enter the grotto"}
+                {save?.journeyComplete
+                  ? "Return to the Heartbloom"
+                  : hasProgress
+                    ? "Continue journey"
+                    : "Enter the grotto"}
               </button>
               {hasProgress && (
                 <button
                   type="button"
                   className="secondary-button"
-                  onClick={() => begin(true)}
+                  onClick={requestRestart}
                 >
                   Begin again
                 </button>
@@ -418,7 +638,7 @@ export default function GlimmerGrotto() {
               </button>
               <button
                 type="button"
-                onClick={() => setHintStage((value) => Math.min(3, value + 1))}
+                onClick={revealHint}
               >
                 <Icon>✦</Icon> Hint
               </button>
@@ -431,7 +651,12 @@ export default function GlimmerGrotto() {
                 <button
                   type="button"
                   className="touch-up"
-                  onPointerDown={() => dispatch({ type: "move", dx: 0, dy: -1 })}
+                  onPointerDown={(event) =>
+                    startHeldCommand(event, { type: "move", dx: 0, dy: -1 })
+                  }
+                  onPointerUp={stopHeldCommand}
+                  onPointerCancel={stopHeldCommand}
+                  onLostPointerCapture={stopHeldCommand}
                 >
                   <span aria-hidden="true">↑</span>
                   <span className="sr-only">Move up</span>
@@ -439,7 +664,12 @@ export default function GlimmerGrotto() {
                 <button
                   type="button"
                   className="touch-left"
-                  onPointerDown={() => dispatch({ type: "move", dx: -1, dy: 0 })}
+                  onPointerDown={(event) =>
+                    startHeldCommand(event, { type: "move", dx: -1, dy: 0 })
+                  }
+                  onPointerUp={stopHeldCommand}
+                  onPointerCancel={stopHeldCommand}
+                  onLostPointerCapture={stopHeldCommand}
                 >
                   <span aria-hidden="true">←</span>
                   <span className="sr-only">Move left</span>
@@ -447,7 +677,12 @@ export default function GlimmerGrotto() {
                 <button
                   type="button"
                   className="touch-right"
-                  onPointerDown={() => dispatch({ type: "move", dx: 1, dy: 0 })}
+                  onPointerDown={(event) =>
+                    startHeldCommand(event, { type: "move", dx: 1, dy: 0 })
+                  }
+                  onPointerUp={stopHeldCommand}
+                  onPointerCancel={stopHeldCommand}
+                  onLostPointerCapture={stopHeldCommand}
                 >
                   <span aria-hidden="true">→</span>
                   <span className="sr-only">Move right</span>
@@ -455,7 +690,12 @@ export default function GlimmerGrotto() {
                 <button
                   type="button"
                   className="touch-down"
-                  onPointerDown={() => dispatch({ type: "move", dx: 0, dy: 1 })}
+                  onPointerDown={(event) =>
+                    startHeldCommand(event, { type: "move", dx: 0, dy: 1 })
+                  }
+                  onPointerUp={stopHeldCommand}
+                  onPointerCancel={stopHeldCommand}
+                  onLostPointerCapture={stopHeldCommand}
                 >
                   <span aria-hidden="true">↓</span>
                   <span className="sr-only">Move down</span>
@@ -480,11 +720,15 @@ export default function GlimmerGrotto() {
                 <span>{room?.story}</span>
               </div>
             </div>
-            <div className={`hint-card ${hintStage > 0 ? "is-visible" : ""}`}>
-              <p>Lantern hint {Math.max(hintStage, 1)} of 3</p>
+            <div
+              className={`hint-card ${hintStage > 0 ? "is-visible" : ""}`}
+              aria-live="polite"
+            >
+              <p>{hintStage > 0 ? `Lantern hint ${hintStage} of 3` : "Lantern hints"}</p>
               <span>
-                {room?.hints[Math.max(0, hintStage - 1)] ??
-                  "Hints appear here when you ask for one."}
+                {hintStage > 0
+                  ? room?.hints[hintStage - 1]
+                  : "Ask only when you want a gentle nudge."}
               </span>
             </div>
           </div>
@@ -502,7 +746,7 @@ export default function GlimmerGrotto() {
           <p className="eyebrow">The Heartbloom wakes</p>
           <h1 id="ending-title">The grotto glimmers again.</h1>
           <p>
-            Mica's small light has become a garden of thousands. Luma settles
+            Mica&apos;s small light has become a garden of thousands. Luma settles
             beside the lantern, and the cave begins a new song.
           </p>
           <div className="ending-stats">
@@ -510,10 +754,10 @@ export default function GlimmerGrotto() {
             <span><b>{seeds}</b> echo seeds found</span>
           </div>
           <div className="title-actions">
-            <button type="button" className="primary-button" onClick={() => begin(true)}>
+            <button type="button" className="primary-button" onClick={requestRestart}>
               Begin a new journey
             </button>
-            <button type="button" className="secondary-button" onClick={() => setScreen("title")}>
+            <button type="button" className="secondary-button" onClick={returnToTitle}>
               Return to title
             </button>
           </div>
@@ -526,15 +770,8 @@ export default function GlimmerGrotto() {
       </footer>
 
       {helpOpen && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={closeHelp}>
-          <section
-            className="modal-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="help-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <button type="button" className="modal-close" onClick={closeHelp} aria-label="Close how to play">×</button>
+        <Modal labelledBy="help-title" onClose={closeHelp}>
+            <button type="button" className="modal-close" onClick={closeHelp} aria-label="Close how to play" autoFocus>×</button>
             <p className="eyebrow">Lantern guide</p>
             <h2 id="help-title">How to play</h2>
             <div className="control-list">
@@ -548,20 +785,12 @@ export default function GlimmerGrotto() {
               There are no timers or fail states. Every choice can be changed,
               and every room can be reset whenever you like.
             </p>
-          </section>
-        </div>
+        </Modal>
       )}
 
       {settingsOpen && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={closeSettings}>
-          <section
-            className="modal-panel settings-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="settings-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <button type="button" className="modal-close" onClick={closeSettings} aria-label="Close settings">×</button>
+        <Modal labelledBy="settings-title" className="settings-panel" onClose={closeSettings}>
+            <button type="button" className="modal-close" onClick={closeSettings} aria-label="Close settings" autoFocus>×</button>
             <p className="eyebrow">Make it yours</p>
             <h2 id="settings-title">Settings</h2>
             <label className="toggle-row">
@@ -616,8 +845,27 @@ export default function GlimmerGrotto() {
               <input ref={fileInputRef} type="file" accept="application/json,.json" onChange={uploadSave} hidden />
             </div>
             {storageNote && <p className="storage-note" role="status">{storageNote}</p>}
-          </section>
-        </div>
+        </Modal>
+      )}
+
+      {restartOpen && (
+        <Modal labelledBy="restart-title" className="confirm-panel" onClose={closeRestart}>
+          <button type="button" className="modal-close" onClick={closeRestart} aria-label="Keep current journey" autoFocus>×</button>
+          <p className="eyebrow">A fresh lantern</p>
+          <h2 id="restart-title">Begin a new journey?</h2>
+          <p className="modal-note">
+            This replaces the current local journey. Export your save first if
+            you may want to return to it.
+          </p>
+          <div className="confirm-actions">
+            <button type="button" className="secondary-button" onClick={closeRestart}>
+              Keep this journey
+            </button>
+            <button type="button" className="primary-button" onClick={confirmRestart}>
+              Begin again
+            </button>
+          </div>
+        </Modal>
       )}
 
       <div className="sr-only" aria-live="polite" aria-atomic="true">
@@ -626,4 +874,3 @@ export default function GlimmerGrotto() {
     </main>
   );
 }
-
