@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.20.0 — From first spark to afterglow
+
+- Centralized biome, room, memory, and ending progress transitions so the live
+  interface and release certification use the same campaign rules.
+- Added a deterministic clean-profile campaign certificate that walks and
+  solves all 20 authored rooms in order, takes every one of the 15 memory
+  detours, acknowledges all four biome thresholds, and reaches the ending.
+- Exercised 1,103 real movement and interaction commands across the campaign,
+  with per-room and per-biome evidence that fails closed when authored content
+  or its verified routes drift.
+- Round-tripped the journey through 27 clean autosave reloads and one canonical
+  export/import boundary, then reopened and solved the final room as a revisit
+  without regressing the 20-room frontier or 15-memory collection.
+- Published the exact certificate with the production artifact and first-load
+  offline cache, guarded its release version and byte-identical deployed copy,
+  and advanced the cache to v14.
+- Expanded deterministic coverage to 211 unit checks and 21 production-shell
+  checks.
+
 ## 0.19.0 — The whole path in hand
 
 - Added controller navigation to the title and ending screens, with the left

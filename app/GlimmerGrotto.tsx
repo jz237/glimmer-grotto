@@ -20,6 +20,7 @@ import type {
   SaveGameV1,
   TutorialStep,
 } from "./game/contracts";
+import { applyCampaignProgress } from "./game/campaign";
 import {
   ECHO_MEMORIES,
   collectedMemoryCount,
@@ -383,12 +384,7 @@ export default function GlimmerGrotto() {
           setBiomeArrival(event.arrival);
           break;
         case "biomeSeen":
-          updateSave((current) => ({
-            ...current,
-            seenBiomes: current.seenBiomes.includes(event.biome)
-              ? current.seenBiomes
-              : [...current.seenBiomes, event.biome],
-          }));
+          updateSave((current) => applyCampaignProgress(current, event));
           break;
         case "mechanicStatus":
           setMechanicStatus(event.items);
@@ -400,19 +396,10 @@ export default function GlimmerGrotto() {
           break;
         }
         case "progress":
-          updateSave((current) => ({
-            ...current,
-            currentRoom: event.currentRoom,
-            completedRooms: event.completedRooms,
-            collectedSeeds: event.collectedSeeds,
-          }));
+          updateSave((current) => applyCampaignProgress(current, event));
           break;
         case "journeyComplete":
-          updateSave((current) => ({
-            ...current,
-            journeyComplete: true,
-            currentRoom: totalRooms - 1,
-          }));
+          updateSave((current) => applyCampaignProgress(current, event));
           setScreen("complete");
           setAnnouncement("The Heartbloom wakes. Glimmer Grotto shines again.");
           break;
@@ -421,7 +408,7 @@ export default function GlimmerGrotto() {
           break;
       }
     },
-    [totalRooms, updateSave],
+    [updateSave],
   );
 
   useEffect(() => {

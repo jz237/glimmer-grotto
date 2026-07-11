@@ -1,10 +1,11 @@
 const CACHE_PREFIX = "glimmer-grotto-";
-const CACHE = "glimmer-grotto-v13";
+const CACHE = "glimmer-grotto-v14";
 const CORE = [
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",
   "/third-party-notices.txt",
+  "/release/clean-profile-certificate.json",
 ];
 const APP_SHELL_TITLE = "<title>Glimmer Grotto";
 
@@ -79,6 +80,7 @@ function isCoreResponse(url, response) {
   if (pathname.endsWith(".webmanifest")) {
     return contentType.includes("json") || contentType.includes("manifest");
   }
+  if (pathname.endsWith(".json")) return contentType.includes("json");
   if (pathname.endsWith(".png")) return contentType.startsWith("image/png");
   if (pathname.endsWith(".txt")) return contentType.startsWith("text/plain");
   return false;

@@ -4,7 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const ORIGIN = "https://glimmer-grotto.example";
-const CURRENT_CACHE = "glimmer-grotto-v13";
+const CURRENT_CACHE = "glimmer-grotto-v14";
 const workerSource = await readFile(
   new URL("../public/sw.js", import.meta.url),
   "utf8",
@@ -184,6 +184,12 @@ function seedShellNetwork(harness) {
     }),
   );
   harness.network.set(
+    "/release/clean-profile-certificate.json",
+    new Response('{"certificate":"clean-profile-completion"}', {
+      headers: { "content-type": "application/json" },
+    }),
+  );
+  harness.network.set(
     "/assets/app.css",
     new Response("body{}", { headers: { "content-type": "text/css" } }),
   );
@@ -222,6 +228,7 @@ test("first install precaches the complete hashed app shell", async () => {
       `${ORIGIN}/icon-192.png`,
       `${ORIGIN}/icon-512.png`,
       `${ORIGIN}/manifest.webmanifest`,
+      `${ORIGIN}/release/clean-profile-certificate.json`,
       `${ORIGIN}/third-party-notices.txt`,
     ].sort(),
   );
@@ -240,6 +247,24 @@ test("the credits notice opens from its own cache while offline", async () => {
     url: `${ORIGIN}/third-party-notices.txt`,
   });
   assert.match(await response.text(), /third-party notices/);
+});
+
+test("the completion certificate opens from its own cache while offline", async () => {
+  const harness = createHarness();
+  seedShellNetwork(harness);
+  await harness.dispatchExtendable("install");
+
+  harness.network.set(
+    "/release/clean-profile-certificate.json",
+    new Error("offline"),
+  );
+  const response = await harness.dispatchFetch({
+    method: "GET",
+    mode: "same-origin",
+    destination: "",
+    url: `${ORIGIN}/release/clean-profile-certificate.json`,
+  });
+  assert.match(await response.text(), /clean-profile-completion/);
 });
 
 test("the production build's lazy game engine is available on first offline load", async () => {
@@ -277,6 +302,12 @@ test("the production build's lazy game engine is available on first offline load
     "/third-party-notices.txt",
     new Response("Glimmer Grotto third-party notices", {
       headers: { "content-type": "text/plain; charset=utf-8" },
+    }),
+  );
+  harness.network.set(
+    "/release/clean-profile-certificate.json",
+    new Response('{"certificate":"clean-profile-completion"}', {
+      headers: { "content-type": "application/json" },
     }),
   );
 

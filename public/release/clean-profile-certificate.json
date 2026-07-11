@@ -1,0 +1,294 @@
+{
+  "schemaVersion": 1,
+  "release": "0.20.0",
+  "certificate": "clean-profile-completion",
+  "campaign": {
+    "start": "fresh-save",
+    "roomsRestored": 20,
+    "memoriesRecovered": 15,
+    "biomeThresholdsAcknowledged": 4,
+    "endingReached": true,
+    "roomOrder": [
+      "moss-01",
+      "moss-02",
+      "moss-03",
+      "moss-04",
+      "prism-01",
+      "prism-02",
+      "prism-03",
+      "prism-04",
+      "hush-01",
+      "hush-02",
+      "hush-03",
+      "hush-04",
+      "tide-01",
+      "tide-02",
+      "tide-03",
+      "tide-04",
+      "heart-01",
+      "heart-02",
+      "heart-03",
+      "heart-04"
+    ],
+    "memoryOrder": [
+      "moss-01-seed",
+      "moss-02-seed",
+      "moss-03-seed",
+      "moss-04-seed",
+      "prism-01-seed",
+      "prism-02-seed",
+      "prism-03-seed",
+      "prism-04-seed",
+      "hush-01-seed",
+      "hush-02-seed",
+      "hush-03-seed",
+      "hush-04-seed",
+      "tide-01-seed",
+      "tide-02-seed",
+      "tide-03-seed"
+    ],
+    "biomeThresholds": [
+      "prism-pools",
+      "hushroot",
+      "tideglass",
+      "heartbloom"
+    ]
+  },
+  "routes": {
+    "totalCommands": 1103,
+    "moveCommands": 976,
+    "interactionCommands": 127,
+    "longestRoomCommands": 91,
+    "byBiome": [
+      {
+        "biome": "mosswake",
+        "rooms": 4,
+        "commands": 154
+      },
+      {
+        "biome": "prism-pools",
+        "rooms": 4,
+        "commands": 172
+      },
+      {
+        "biome": "hushroot",
+        "rooms": 4,
+        "commands": 278
+      },
+      {
+        "biome": "tideglass",
+        "rooms": 4,
+        "commands": 209
+      },
+      {
+        "biome": "heartbloom",
+        "rooms": 4,
+        "commands": 290
+      }
+    ],
+    "rooms": [
+      {
+        "roomId": "moss-01",
+        "biome": "mosswake",
+        "commands": 22,
+        "moves": 20,
+        "interactions": 2,
+        "memoryId": "moss-01-seed"
+      },
+      {
+        "roomId": "moss-02",
+        "biome": "mosswake",
+        "commands": 46,
+        "moves": 43,
+        "interactions": 3,
+        "memoryId": "moss-02-seed"
+      },
+      {
+        "roomId": "moss-03",
+        "biome": "mosswake",
+        "commands": 26,
+        "moves": 22,
+        "interactions": 4,
+        "memoryId": "moss-03-seed"
+      },
+      {
+        "roomId": "moss-04",
+        "biome": "mosswake",
+        "commands": 60,
+        "moves": 54,
+        "interactions": 6,
+        "memoryId": "moss-04-seed"
+      },
+      {
+        "roomId": "prism-01",
+        "biome": "prism-pools",
+        "commands": 43,
+        "moves": 39,
+        "interactions": 4,
+        "memoryId": "prism-01-seed"
+      },
+      {
+        "roomId": "prism-02",
+        "biome": "prism-pools",
+        "commands": 31,
+        "moves": 27,
+        "interactions": 4,
+        "memoryId": "prism-02-seed"
+      },
+      {
+        "roomId": "prism-03",
+        "biome": "prism-pools",
+        "commands": 62,
+        "moves": 56,
+        "interactions": 6,
+        "memoryId": "prism-03-seed"
+      },
+      {
+        "roomId": "prism-04",
+        "biome": "prism-pools",
+        "commands": 36,
+        "moves": 30,
+        "interactions": 6,
+        "memoryId": "prism-04-seed"
+      },
+      {
+        "roomId": "hush-01",
+        "biome": "hushroot",
+        "commands": 67,
+        "moves": 62,
+        "interactions": 5,
+        "memoryId": "hush-01-seed"
+      },
+      {
+        "roomId": "hush-02",
+        "biome": "hushroot",
+        "commands": 57,
+        "moves": 50,
+        "interactions": 7,
+        "memoryId": "hush-02-seed"
+      },
+      {
+        "roomId": "hush-03",
+        "biome": "hushroot",
+        "commands": 85,
+        "moves": 75,
+        "interactions": 10,
+        "memoryId": "hush-03-seed"
+      },
+      {
+        "roomId": "hush-04",
+        "biome": "hushroot",
+        "commands": 69,
+        "moves": 59,
+        "interactions": 10,
+        "memoryId": "hush-04-seed"
+      },
+      {
+        "roomId": "tide-01",
+        "biome": "tideglass",
+        "commands": 47,
+        "moves": 42,
+        "interactions": 5,
+        "memoryId": "tide-01-seed"
+      },
+      {
+        "roomId": "tide-02",
+        "biome": "tideglass",
+        "commands": 49,
+        "moves": 44,
+        "interactions": 5,
+        "memoryId": "tide-02-seed"
+      },
+      {
+        "roomId": "tide-03",
+        "biome": "tideglass",
+        "commands": 64,
+        "moves": 58,
+        "interactions": 6,
+        "memoryId": "tide-03-seed"
+      },
+      {
+        "roomId": "tide-04",
+        "biome": "tideglass",
+        "commands": 49,
+        "moves": 43,
+        "interactions": 6,
+        "memoryId": null
+      },
+      {
+        "roomId": "heart-01",
+        "biome": "heartbloom",
+        "commands": 52,
+        "moves": 44,
+        "interactions": 8,
+        "memoryId": null
+      },
+      {
+        "roomId": "heart-02",
+        "biome": "heartbloom",
+        "commands": 57,
+        "moves": 50,
+        "interactions": 7,
+        "memoryId": null
+      },
+      {
+        "roomId": "heart-03",
+        "biome": "heartbloom",
+        "commands": 91,
+        "moves": 79,
+        "interactions": 12,
+        "memoryId": null
+      },
+      {
+        "roomId": "heart-04",
+        "biome": "heartbloom",
+        "commands": 90,
+        "moves": 79,
+        "interactions": 11,
+        "memoryId": null
+      }
+    ]
+  },
+  "persistence": {
+    "autosaveRoundTrips": 27,
+    "cleanLoads": 27,
+    "recoveryEvents": 0,
+    "exportImportRoundTrips": 1
+  },
+  "afterglow": {
+    "reopenedRoomId": "heart-04",
+    "visitMode": "revisit",
+    "replaySolved": true,
+    "replayCommands": 90,
+    "frontierRoom": 19,
+    "restoredRooms": 20,
+    "foundMemories": 15,
+    "mapGroups": [
+      {
+        "biome": "mosswake",
+        "restoredRooms": 4,
+        "foundMemories": 4
+      },
+      {
+        "biome": "prism-pools",
+        "restoredRooms": 4,
+        "foundMemories": 4
+      },
+      {
+        "biome": "hushroot",
+        "restoredRooms": 4,
+        "foundMemories": 4
+      },
+      {
+        "biome": "tideglass",
+        "restoredRooms": 4,
+        "foundMemories": 3
+      },
+      {
+        "biome": "heartbloom",
+        "restoredRooms": 4,
+        "foundMemories": 0
+      }
+    ]
+  }
+}

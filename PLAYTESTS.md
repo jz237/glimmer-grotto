@@ -5,6 +5,47 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-11 — From first spark to afterglow
+
+- **Build:** 0.20.0 release candidate
+- **Scenario:** Begin with a fresh versioned save, follow the real player route
+  through every authored room and memory detour, acknowledge every biome
+  threshold, reload at each persistence boundary, reach the ending, export and
+  import the canonical save, then reopen and solve the afterglow room.
+- **Inputs:** 976 cardinal movement commands and 127 contextual interactions
+  generated against the same collision and interaction rules as the runtime.
+- **Viewport:** runtime-independent campaign pass; responsive interface geometry
+  remains covered by the existing viewport matrix.
+- **Coverage:** 20 rooms, 15 memories, five biome map groups, four threshold
+  acknowledgements, 27 autosave reloads, one export/import round trip, ending
+  persistence, map restoration, and a 90-command Heartbloom revisit.
+
+### Observations
+
+- Campaign events had previously been persisted by inline UI branches while
+  navigation, save recovery, and afterglow were tested separately. The live
+  interface now calls one pure campaign transition function that the continuous
+  release pass exercises directly.
+- All 1,103 campaign commands solved in canonical room order. Every optional
+  memory was collected before its bloom restored, and the four authored arrival
+  acknowledgements survived the same save reconciliation used in production.
+- All 27 autosave reloads returned cleanly without repair, backup recovery, or
+  reset. The completed save also exported and imported canonically without a
+  migration or data change.
+- Reopening selected Glimmer Grotto as a revisit. Its verified route solved a
+  second time while the frontier remained room 20, all map groups remained
+  restored, and all 15 memories stayed found.
+- The exact per-room evidence now ships as JSON with the production build,
+  matches the release version byte for byte, and is included in the first-load
+  offline cache.
+
+### Follow-up
+
+- Rehearse a private rollback from this certified artifact and prove that the
+  previous controller release can be restored without changing player access.
+- Repeat a complete fresh journey with human players to evaluate memory
+  discovery cadence and story comprehension rather than mechanical reachability.
+
 ## 2026-07-11 — Holding the whole path
 
 - **Build:** 0.19.0 release candidate

@@ -28,8 +28,10 @@ quality, performance, then cosmetic polish.
   non-audio mechanic-comprehension passes. The first room-to-room story-echo
   pass is complete through the seed-memory journal, and missed memories are now
   recoverable before and after the ending through the grotto map. A late-game
-  15-memory completion pass is complete; tune discovery pacing and room order
-  from human playtest observations and retain the clean-profile completion gate.
+  15-memory completion pass is complete. The clean-profile completion gate now
+  certifies all 20 rooms, 15 memories, four thresholds, persistence, ending, and
+  afterglow in one continuous run; tune discovery pacing and room order from
+  human playtest observations.
 - **Beta:** the first comprehensive large-text/high-contrast interface pass and
   the first non-visual spatial-orientation pass are complete. The Lantern
   Compass now exposes position, paths, landmarks, objects, and beam state on
@@ -41,8 +43,9 @@ quality, performance, then cosmetic polish.
   and shipped-artifact license passes are complete against the real production
   graph. Third-party notices are player-visible, available offline, and guarded
   against dependency, license-text, and generated-asset drift.
-- **1.0:** zero severe defects, clean-profile completion, rollback rehearsal,
-  final private release candidate, then an explicitly approved public launch.
+- **1.0:** clean-profile completion is certified and published with the release.
+  Zero-severe-defect review, rollback rehearsal, final private release
+  candidate, then an explicitly approved public launch remain.
 
 ## Guardrails
 

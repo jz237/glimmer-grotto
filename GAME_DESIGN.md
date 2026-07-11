@@ -90,3 +90,7 @@ pre-repair copy remains available as the backup generation.
 - A dependency upgrade, new production dependency, newly retained font, or
   missing license source stops the release until the ledger and notice are
   reviewed together.
+- Every release candidate must reproduce its public clean-profile certificate
+  from a fresh save by completing all authored rooms and memories, crossing
+  every biome threshold, surviving autosave and export/import boundaries,
+  reaching the ending, and reopening a non-regressing playable afterglow.
