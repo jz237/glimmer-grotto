@@ -5,6 +5,8 @@ import {
   advanceDirectionRepeat,
   createDirectionRepeatState,
   createSuppressedDirectionRepeatState,
+  firstConnectedGamepad,
+  GamepadSessionGuard,
   nextDialogFocusIndex,
   readGamepadFrame,
 } from "./game/input";
@@ -15,9 +17,22 @@ const PAGE_CONTROLS =
   'main button:not([disabled]), main a[href], main input:not([disabled]), main [tabindex]:not([tabindex="-1"])';
 
 function connectedGamepad(): Gamepad | undefined {
-  return navigator
-    .getGamepads?.()
-    .find((candidate): candidate is Gamepad => Boolean(candidate));
+  return firstConnectedGamepad(navigator.getGamepads?.() ?? []);
+}
+
+function observeInputInterruptions(interrupt: () => void): () => void {
+  document.addEventListener("visibilitychange", interrupt);
+  window.addEventListener("blur", interrupt);
+  window.addEventListener("pagehide", interrupt);
+  window.addEventListener("gamepadconnected", interrupt);
+  window.addEventListener("gamepaddisconnected", interrupt);
+  return () => {
+    document.removeEventListener("visibilitychange", interrupt);
+    window.removeEventListener("blur", interrupt);
+    window.removeEventListener("pagehide", interrupt);
+    window.removeEventListener("gamepadconnected", interrupt);
+    window.removeEventListener("gamepaddisconnected", interrupt);
+  };
 }
 
 function visibleControls(root: ParentNode, selector: string): HTMLElement[] {
@@ -36,7 +51,7 @@ export function useDialogGamepadNavigation(
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    let controllerInitialized = false;
+    const gamepadSession = new GamepadSessionGuard();
     let actionHeld = false;
     let cancelHeld = false;
     let repeat = createDirectionRepeatState();
@@ -45,14 +60,13 @@ export function useDialogGamepadNavigation(
     const pollGamepad = (time: number) => {
       const gamepad = connectedGamepad();
       if (!gamepad) {
-        controllerInitialized = false;
+        gamepadSession.disconnect();
         actionHeld = false;
         cancelHeld = false;
         repeat = createDirectionRepeatState();
       } else {
         const frame = readGamepadFrame(gamepad);
-        if (!controllerInitialized) {
-          controllerInitialized = true;
+        if (gamepadSession.shouldSuppressFrame(gamepad.index)) {
           actionHeld = frame.action;
           cancelHeld = frame.describe;
           repeat = createSuppressedDirectionRepeatState(frame.direction);
@@ -120,8 +134,14 @@ export function useDialogGamepadNavigation(
       gamepadFrame = window.requestAnimationFrame(pollGamepad);
     };
 
+    const stopObserving = observeInputInterruptions(() => {
+      gamepadSession.interrupt();
+    });
     gamepadFrame = window.requestAnimationFrame(pollGamepad);
-    return () => window.cancelAnimationFrame(gamepadFrame);
+    return () => {
+      stopObserving();
+      window.cancelAnimationFrame(gamepadFrame);
+    };
   }, [dialogRef, onClose]);
 }
 
@@ -138,7 +158,7 @@ export function usePageGamepadNavigation({
 }): void {
   useEffect(() => {
     if (!enabled) return;
-    let controllerInitialized = false;
+    const gamepadSession = new GamepadSessionGuard();
     let actionHeld = false;
     let memoriesHeld = false;
     let menuHeld = false;
@@ -149,15 +169,14 @@ export function usePageGamepadNavigation({
     const pollGamepad = (time: number) => {
       const gamepad = connectedGamepad();
       if (!gamepad) {
-        controllerInitialized = false;
+        gamepadSession.disconnect();
         actionHeld = false;
         memoriesHeld = false;
         menuHeld = false;
         repeat = createDirectionRepeatState();
       } else {
         const frame = readGamepadFrame(gamepad);
-        if (!controllerInitialized) {
-          controllerInitialized = true;
+        if (gamepadSession.shouldSuppressFrame(gamepad.index)) {
           actionHeld = frame.action;
           memoriesHeld = frame.memories;
           menuHeld = frame.menu;
@@ -218,7 +237,13 @@ export function usePageGamepadNavigation({
       gamepadFrame = window.requestAnimationFrame(pollGamepad);
     };
 
+    const stopObserving = observeInputInterruptions(() => {
+      gamepadSession.interrupt();
+    });
     gamepadFrame = window.requestAnimationFrame(pollGamepad);
-    return () => window.cancelAnimationFrame(gamepadFrame);
+    return () => {
+      stopObserving();
+      window.cancelAnimationFrame(gamepadFrame);
+    };
   }, [enabled, onInputMethod, onMemories, onSettings]);
 }

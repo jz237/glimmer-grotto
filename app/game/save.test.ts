@@ -4,12 +4,14 @@ import {
   BACKUP_KEY,
   SAVE_KEY,
   clearSave,
+  clearSaveWithStatus,
   createFreshSave,
   importSave,
   importSaveWithRecovery,
   loadSave,
   loadSaveWithRecovery,
   persistSave,
+  persistSaveWithStatus,
   reconcileSave,
   type StorageLike,
 } from "./save";
@@ -36,6 +38,47 @@ class ThrowingStorage implements StorageLike {
   }
   removeItem(): void {
     throw new Error("storage blocked");
+  }
+}
+
+class DroppingStorage implements StorageLike {
+  getItem(): string | null {
+    return null;
+  }
+  setItem(): void {
+    // Simulates a storage facade that accepts a call but silently drops it.
+  }
+  removeItem(): void {
+    // There is no retained value to remove.
+  }
+}
+
+class BackupFailingStorage extends MemoryStorage {
+  failBackup = false;
+
+  override setItem(key: string, value: string): void {
+    if (this.failBackup && key === BACKUP_KEY) {
+      throw new Error("backup quota exceeded");
+    }
+    super.setItem(key, value);
+  }
+
+  override removeItem(key: string): void {
+    if (this.failBackup && key === BACKUP_KEY) {
+      throw new Error("backup removal blocked");
+    }
+    super.removeItem(key);
+  }
+}
+
+class PrimaryFailingStorage extends MemoryStorage {
+  failPrimary = false;
+
+  override setItem(key: string, value: string): void {
+    if (this.failPrimary && key === SAVE_KEY) {
+      throw new Error("primary write blocked");
+    }
+    super.setItem(key, value);
   }
 }
 
@@ -69,6 +112,7 @@ describe("local save safety", () => {
     storage.setItem(SAVE_KEY, "not-json");
     const loaded = loadSaveWithRecovery(storage);
     expect(loaded.recovery).toBe("backup");
+    expect(loaded.persistence).toBe("saved");
     expect(loaded.save.currentRoom).toBe(7);
     expect(storage.getItem(SAVE_KEY)).toContain('"currentRoom":7');
   });
@@ -92,14 +136,18 @@ describe("local save safety", () => {
     expect(loadSave(storage).seenBiomes).toEqual(["prism-pools"]);
   });
 
-  it("rejects invalid imports and clears both save generations", () => {
+  it("rejects invalid imports and replaces both save generations with a fresh start", () => {
     expect(() => importSave('{"schemaVersion":99}')).toThrow(/valid/i);
     const storage = new MemoryStorage();
     storage.setItem(SAVE_KEY, "primary");
     storage.setItem(BACKUP_KEY, "backup");
     const fresh = clearSave(storage);
     expect(fresh.currentRoom).toBe(0);
-    expect(storage.values.size).toBe(0);
+    expect(loadSaveWithRecovery(storage)).toMatchObject({
+      save: { currentRoom: 0, completedRooms: [] },
+      recovery: "none",
+    });
+    expect(storage.getItem(BACKUP_KEY)).toBeNull();
   });
 
   it("keeps the game playable when browser storage is unavailable", () => {
@@ -107,12 +155,94 @@ describe("local save safety", () => {
     const fresh = loadSave(storage);
     expect(fresh.currentRoom).toBe(0);
     expect(loadSaveWithRecovery(storage).recovery).toBe("unavailable");
+    expect(loadSaveWithRecovery(storage).persistence).toBe("unavailable");
     expect(loadSaveWithRecovery(null).recovery).toBe("unavailable");
     expect(() => persistSave(storage, fresh)).not.toThrow();
     expect(() => clearSave(storage)).not.toThrow();
     expect(loadSave(null).currentRoom).toBe(0);
     expect(() => persistSave(null, fresh)).not.toThrow();
     expect(() => clearSave(null)).not.toThrow();
+  });
+
+  it("verifies every primary write instead of silently accepting data loss", () => {
+    const fresh = createFreshSave(new Date("2026-07-10T00:00:00.000Z"));
+    expect(persistSaveWithStatus(new ThrowingStorage(), fresh).persistence).toBe(
+      "unavailable",
+    );
+    expect(persistSaveWithStatus(new DroppingStorage(), fresh).persistence).toBe(
+      "unavailable",
+    );
+    expect(persistSaveWithStatus(null, fresh).persistence).toBe("unavailable");
+  });
+
+  it("reports a usable primary when only the recovery generation fails", () => {
+    const storage = new BackupFailingStorage();
+    const fresh = createFreshSave(new Date("2026-07-10T00:00:00.000Z"));
+    persistSave(storage, fresh);
+    storage.failBackup = true;
+    const result = persistSaveWithStatus(storage, {
+      ...fresh,
+      currentRoom: 1,
+      completedRooms: ["moss-01"],
+    });
+
+    expect(result.persistence).toBe("primary-only");
+    expect(loadSave(storage).currentRoom).toBe(1);
+  });
+
+  it("reports degraded redundancy while recovering or repairing", () => {
+    const backupOnly = new PrimaryFailingStorage();
+    const save = {
+      ...createFreshSave(new Date("2026-07-10T00:00:00.000Z")),
+      currentRoom: 2,
+      completedRooms: JOURNEY_ROOMS.slice(0, 2).map((room) => room.id),
+    };
+    backupOnly.setItem(SAVE_KEY, "broken-primary");
+    backupOnly.setItem(BACKUP_KEY, JSON.stringify(save));
+    backupOnly.failPrimary = true;
+    expect(loadSaveWithRecovery(backupOnly)).toMatchObject({
+      save: { currentRoom: 2 },
+      recovery: "backup",
+      persistence: "backup-only",
+    });
+
+    const primaryOnly = new BackupFailingStorage();
+    primaryOnly.setItem(
+      SAVE_KEY,
+      JSON.stringify({
+        ...createFreshSave(new Date("2026-07-10T00:00:00.000Z")),
+        currentRoom: 3,
+        completedRooms: ["moss-01"],
+      }),
+    );
+    primaryOnly.failBackup = true;
+    expect(loadSaveWithRecovery(primaryOnly)).toMatchObject({
+      save: { currentRoom: 3 },
+      recovery: "repaired",
+      persistence: "primary-only",
+    });
+  });
+
+  it("makes a confirmed restart durable and reports incomplete neutralization", () => {
+    const storage = new MemoryStorage();
+    persistSave(storage, {
+      ...createFreshSave(),
+      currentRoom: 3,
+      completedRooms: JOURNEY_ROOMS.slice(0, 3).map((room) => room.id),
+    });
+    expect(clearSaveWithStatus(storage).persistence).toBe("saved");
+    expect(loadSave(storage).currentRoom).toBe(0);
+
+    const partial = new BackupFailingStorage();
+    persistSave(partial, {
+      ...createFreshSave(),
+      currentRoom: 2,
+      completedRooms: JOURNEY_ROOMS.slice(0, 2).map((room) => room.id),
+    });
+    partial.failBackup = true;
+    const cleared = clearSaveWithStatus(partial);
+    expect(cleared.persistence).toBe("primary-only");
+    expect(loadSave(partial).currentRoom).toBe(0);
   });
 
   it("repairs a save that completed every room before the ending flag persisted", () => {

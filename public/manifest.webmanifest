@@ -2,8 +2,8 @@
   "name": "Glimmer Grotto",
   "short_name": "Glimmer",
   "description": "A quiet, no-fail puzzle adventure beneath the earth.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "landscape-primary",
   "background_color": "#041313",
@@ -11,13 +11,13 @@
   "categories": ["games", "entertainment"],
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

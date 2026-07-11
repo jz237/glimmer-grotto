@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "release": "0.20.0",
+  "release": "0.50.0",
   "certificate": "clean-profile-completion",
   "campaign": {
     "start": "fresh-save",

@@ -34,11 +34,23 @@ export type SaveRecovery =
 export interface SaveLoadResult {
   save: SaveGameV1;
   recovery: SaveRecovery;
+  persistence: SavePersistence;
 }
 
 export interface SaveImportResult {
   save: SaveGameV1;
   repaired: boolean;
+}
+
+export type SavePersistence =
+  | "saved"
+  | "primary-only"
+  | "backup-only"
+  | "unavailable";
+
+export interface SavePersistResult {
+  save: SaveGameV1;
+  persistence: SavePersistence;
 }
 
 const BIOME_IDS: readonly BiomeId[] = [
@@ -63,14 +75,6 @@ JOURNEY_ROOMS.forEach((room) => {
   }
 });
 
-function safeGet(storage: OptionalStorage, key: string): string | null {
-  try {
-    return storage?.getItem(key) ?? null;
-  } catch {
-    return null;
-  }
-}
-
 function safeRead(
   storage: OptionalStorage,
   key: string,
@@ -93,11 +97,24 @@ function safeSet(storage: OptionalStorage, key: string, value: string): boolean 
   }
 }
 
-function safeRemove(storage: OptionalStorage, key: string): void {
+function verifiedSet(
+  storage: OptionalStorage,
+  key: string,
+  value: string,
+): boolean {
+  if (!safeSet(storage, key, value)) return false;
+  const read = safeRead(storage, key);
+  return read.available && read.value === value;
+}
+
+function safeRemove(storage: OptionalStorage, key: string): boolean {
   try {
-    storage?.removeItem(key);
+    if (!storage) return false;
+    storage.removeItem(key);
+    return storage.getItem(key) === null;
   } catch {
     // Storage can be unavailable in hardened or private browser contexts.
+    return false;
   }
 }
 
@@ -285,63 +302,129 @@ export function parseSave(raw: string): SaveGameV1 | null {
 export function loadSaveWithRecovery(storage: OptionalStorage): SaveLoadResult {
   const primaryRead = safeRead(storage, SAVE_KEY);
   if (!primaryRead.available) {
-    return { save: createFreshSave(), recovery: "unavailable" };
+    return {
+      save: createFreshSave(),
+      recovery: "unavailable",
+      persistence: "unavailable",
+    };
   }
   const primary = primaryRead.value;
   if (primary) {
     const parsed = parseSaveResult(primary);
     if (parsed) {
+      let persistence: SavePersistence = "saved";
       if (parsed.repaired) {
-        safeSet(storage, BACKUP_KEY, primary);
-        safeSet(storage, SAVE_KEY, JSON.stringify(parsed.save));
+        const backupSaved = verifiedSet(storage, BACKUP_KEY, primary);
+        const primarySaved = verifiedSet(
+          storage,
+          SAVE_KEY,
+          JSON.stringify(parsed.save),
+        );
+        persistence = !primarySaved
+          ? backupSaved
+            ? "backup-only"
+            : "unavailable"
+          : backupSaved
+            ? "saved"
+            : "primary-only";
       }
       return {
         save: parsed.save,
         recovery: parsed.repaired ? "repaired" : "none",
+        persistence,
       };
     }
   }
   const backupRead = safeRead(storage, BACKUP_KEY);
   if (!backupRead.available) {
-    return { save: createFreshSave(), recovery: "unavailable" };
+    return {
+      save: createFreshSave(),
+      recovery: "unavailable",
+      persistence: "unavailable",
+    };
   }
   const backup = backupRead.value;
   if (backup) {
     const parsed = parseSaveResult(backup);
     if (parsed) {
-      safeSet(storage, SAVE_KEY, JSON.stringify(parsed.save));
-      return { save: parsed.save, recovery: "backup" };
+      const primarySaved = verifiedSet(
+        storage,
+        SAVE_KEY,
+        JSON.stringify(parsed.save),
+      );
+      return {
+        save: parsed.save,
+        recovery: "backup",
+        persistence: primarySaved ? "saved" : "backup-only",
+      };
     }
   }
-  const fresh = createFreshSave();
   if (primary || backup) {
-    safeSet(storage, SAVE_KEY, JSON.stringify(fresh));
-    return { save: fresh, recovery: "reset" };
+    const reset = clearSaveWithStatus(storage);
+    return { ...reset, recovery: "reset" };
   }
-  return { save: fresh, recovery: "none" };
+  return {
+    save: createFreshSave(),
+    recovery: "none",
+    persistence: "saved",
+  };
 }
 
 export function loadSave(storage: OptionalStorage): SaveGameV1 {
   return loadSaveWithRecovery(storage).save;
 }
 
-export function persistSave(storage: OptionalStorage, save: SaveGameV1): SaveGameV1 {
+export function persistSaveWithStatus(
+  storage: OptionalStorage,
+  save: SaveGameV1,
+): SavePersistResult {
   const next = reconcileSave({
     ...save,
     updatedAt: new Date().toISOString(),
   });
-  const current = safeGet(storage, SAVE_KEY);
-  if (current && parseSaveResult(current)) {
-    safeSet(storage, BACKUP_KEY, current);
+  const current = safeRead(storage, SAVE_KEY);
+  let backupSaved = current.available;
+  if (current.value && parseSaveResult(current.value)) {
+    backupSaved = verifiedSet(storage, BACKUP_KEY, current.value);
   }
-  safeSet(storage, SAVE_KEY, JSON.stringify(next));
-  return next;
+  const primarySaved = verifiedSet(storage, SAVE_KEY, JSON.stringify(next));
+  return {
+    save: next,
+    persistence: !primarySaved
+      ? "unavailable"
+      : backupSaved
+        ? "saved"
+        : "primary-only",
+  };
+}
+
+export function persistSave(storage: OptionalStorage, save: SaveGameV1): SaveGameV1 {
+  return persistSaveWithStatus(storage, save).save;
+}
+
+export function clearSaveWithStatus(
+  storage: OptionalStorage,
+): SavePersistResult {
+  const save = createFreshSave();
+  const serialized = JSON.stringify(save);
+  const backupNeutralized =
+    safeRemove(storage, BACKUP_KEY) ||
+    verifiedSet(storage, BACKUP_KEY, serialized);
+  const primarySaved = verifiedSet(storage, SAVE_KEY, serialized);
+  return {
+    save,
+    persistence: !primarySaved
+      ? backupNeutralized
+        ? "backup-only"
+        : "unavailable"
+      : backupNeutralized
+        ? "saved"
+        : "primary-only",
+  };
 }
 
 export function clearSave(storage: OptionalStorage): SaveGameV1 {
-  safeRemove(storage, SAVE_KEY);
-  safeRemove(storage, BACKUP_KEY);
-  return createFreshSave();
+  return clearSaveWithStatus(storage).save;
 }
 
 export function exportSave(save: SaveGameV1): string {
