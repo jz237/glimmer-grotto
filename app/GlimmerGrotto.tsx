@@ -444,10 +444,6 @@ export default function GlimmerGrotto() {
   };
 
   const enterJourney = () => {
-    if (saveRef.current?.journeyComplete) {
-      setScreen("complete");
-      return;
-    }
     begin(false);
   };
 
@@ -620,6 +616,8 @@ export default function GlimmerGrotto() {
   const seeds = collectedMemoryCount(collectedSeedIds);
   const memoryGroups = echoMemoryGroups(collectedSeedIds);
   const memoriesComplete = seeds === ECHO_MEMORIES.length;
+  const remainingMemories = ECHO_MEMORIES.length - seeds;
+  const isAfterglow = Boolean(save?.journeyComplete && screen === "playing");
   const mapGroups = journeyMapGroups(
     save?.completedRooms ?? [],
     collectedSeedIds,
@@ -728,11 +726,20 @@ export default function GlimmerGrotto() {
               >
                 <Icon>✦</Icon>
                 {save?.journeyComplete
-                  ? "Return to the Heartbloom"
+                  ? "Explore the afterglow"
                   : hasProgress
                     ? "Continue journey"
                     : "Enter the grotto"}
               </button>
+              {save?.journeyComplete && (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setScreen("complete")}
+                >
+                  View ending
+                </button>
+              )}
               {hasProgress && (
                 <button
                   type="button"
@@ -778,7 +785,9 @@ export default function GlimmerGrotto() {
           <div className="play-heading">
             <div>
               <p className="eyebrow">
-                {room?.isRevisit
+                {isAfterglow
+                  ? `Afterglow · ${room?.biomeName ?? "Heartbloom Sanctum"}`
+                  : room?.isRevisit
                   ? `Revisiting · ${room.biomeName}`
                   : room?.biomeName ?? "Entering the grotto"}
               </p>
@@ -1001,7 +1010,9 @@ export default function GlimmerGrotto() {
                 <span>{room?.story}</span>
                 {room?.isRevisit && (
                   <small className="revisit-note">
-                    Revisiting a restored room · your deeper path remains saved.
+                    {isAfterglow
+                      ? "Afterglow · every restored room remains open from the map."
+                      : "Revisiting a restored room · your deeper path remains saved."}
                   </small>
                 )}
               </div>
@@ -1043,16 +1054,34 @@ export default function GlimmerGrotto() {
             Mica&apos;s small light has become a garden of thousands. Luma settles
             beside the lantern, and the cave begins a new song.
           </p>
+          <div className={`afterglow-invitation ${memoriesComplete ? "is-complete" : ""}`}>
+            <span aria-hidden="true">✧</span>
+            <div>
+              <strong>
+                {memoriesComplete
+                  ? "Every keeper story shines in the lantern."
+                  : `${remainingMemories} ${remainingMemories === 1 ? "memory still waits" : "memories still wait"}.`}
+              </strong>
+              <p>
+                {memoriesComplete
+                  ? "The restored grotto remains yours to wander whenever you wish."
+                  : "The afterglow keeps every restored path open, so no echo seed is lost."}
+              </p>
+            </div>
+          </div>
           <div className="ending-stats">
             <span><b>{completed}</b> rooms restored</span>
-            <span><b>{seeds}</b> echo seeds found</span>
+            <span><b>{seeds}</b> / {ECHO_MEMORIES.length} memories found</span>
           </div>
           <div className="title-actions">
-            <button type="button" className="primary-button" onClick={requestRestart}>
-              Begin a new journey
+            <button type="button" className="primary-button" onClick={enterJourney}>
+              <Icon>⌖</Icon> Explore restored grotto
             </button>
             <button type="button" className="secondary-button" onClick={returnToTitle}>
               Return to title
+            </button>
+            <button type="button" className="secondary-button" onClick={requestRestart}>
+              Begin a new journey
             </button>
           </div>
         </section>
@@ -1227,8 +1256,9 @@ export default function GlimmerGrotto() {
             <div>
               <strong>{completed} of {totalRooms} rooms restored</strong>
               <p>
-                Revisit restored rooms for missed memories. Changing rooms resets
-                only the puzzle you leave; your deeper path stays saved.
+                {isAfterglow
+                  ? "Every restored room remains open. Revisit any path for a missed memory; only the puzzle you leave will reset."
+                  : "Revisit restored rooms for missed memories. Changing rooms resets only the puzzle you leave; your deeper path stays saved."}
               </p>
             </div>
           </div>

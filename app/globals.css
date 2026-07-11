@@ -982,6 +982,55 @@ input:focus-visible {
 .ending-screen h1 { font-size: clamp(48px, 7vw, 86px); }
 .ending-screen > p:not(.eyebrow) { max-width: 620px; color: var(--muted); font-family: Georgia, serif; font-size: 20px; line-height: 1.65; }
 
+.afterglow-invitation {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(560px, 100%);
+  margin-top: 24px;
+  padding: 15px 18px;
+  border: 1px solid rgba(255, 213, 139, 0.34);
+  border-radius: 18px;
+  background: rgba(255, 213, 139, 0.06);
+  text-align: left;
+}
+
+.afterglow-invitation > span {
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid rgba(255, 213, 139, 0.46);
+  border-radius: 50%;
+  color: #ffd58b;
+  font-size: 19px;
+}
+
+.afterglow-invitation strong {
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.afterglow-invitation p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.afterglow-invitation.is-complete {
+  border-color: rgba(170, 247, 188, 0.36);
+  background: rgba(170, 247, 188, 0.06);
+}
+
+.afterglow-invitation.is-complete > span {
+  border-color: rgba(170, 247, 188, 0.48);
+  color: var(--glimmer);
+}
+
 .ending-bloom {
   position: relative;
   width: 190px;
@@ -1404,6 +1453,7 @@ kbd { min-width: 33px; padding: 5px 7px; border: 1px solid rgba(207, 255, 221, 0
 .is-high-contrast .tutorial-card,
 .is-high-contrast .mechanic-status,
 .is-high-contrast .memory-entry,
+.is-high-contrast .afterglow-invitation,
 .is-high-contrast .map-room,
 .is-high-contrast .arrival-motif { border-width: 2px; }
 .is-large-text { font-size: 118%; }
@@ -1537,6 +1587,103 @@ kbd { min-width: 33px; padding: 5px 7px; border: 1px solid rgba(207, 255, 221, 0
   .title-art,
   .site-footer {
     display: none;
+  }
+
+  .ending-screen {
+    display: grid;
+    grid-template-columns: 126px minmax(0, 1fr);
+    grid-template-areas:
+      "bloom eyebrow"
+      "bloom title"
+      "bloom story"
+      "bloom invitation"
+      "bloom stats"
+      "bloom actions";
+    align-content: center;
+    align-items: center;
+    justify-items: start;
+    column-gap: 18px;
+    width: min(760px, calc(100% - 20px));
+    min-height: calc(100svh - 52px);
+    padding: 10px 0 14px;
+    text-align: left;
+  }
+
+  .ending-bloom {
+    grid-area: bloom;
+    width: 116px;
+    height: 116px;
+    margin: 0;
+  }
+
+  .ending-bloom span {
+    width: 16px;
+    height: 48px;
+  }
+
+  .ending-bloom i {
+    width: 26px;
+    height: 26px;
+  }
+
+  .ending-screen > .eyebrow {
+    grid-area: eyebrow;
+    margin-bottom: 3px;
+    font-size: 8px;
+  }
+
+  .ending-screen h1 {
+    grid-area: title;
+    font-size: clamp(30px, 7vw, 40px);
+    line-height: 0.94;
+  }
+
+  .ending-screen > p:not(.eyebrow) {
+    grid-area: story;
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .afterglow-invitation {
+    grid-area: invitation;
+    gap: 8px;
+    margin-top: 7px;
+    padding: 7px 9px;
+    border-radius: 12px;
+  }
+
+  .afterglow-invitation > span {
+    flex-basis: 28px;
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
+
+  .afterglow-invitation strong { font-size: 12px; }
+  .afterglow-invitation p { margin-top: 1px; font-size: 9px; line-height: 1.3; }
+
+  .ending-stats {
+    grid-area: stats;
+    margin-top: 7px;
+  }
+
+  .ending-stats span {
+    padding: 5px 8px;
+    font-size: 9px;
+  }
+
+  .ending-screen > .title-actions {
+    grid-area: actions;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .ending-screen .primary-button,
+  .ending-screen .secondary-button {
+    min-height: 34px;
+    padding: 0 11px;
+    font-size: 10px;
   }
 
   .play-screen {

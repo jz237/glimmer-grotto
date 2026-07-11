@@ -24,6 +24,11 @@ export interface JourneyMapGroup {
   entries: JourneyMapEntry[];
 }
 
+export interface JourneyStart {
+  roomIndex: number;
+  isRevisit: boolean;
+}
+
 export const JOURNEY_ROOMS: readonly JourneyRoom[] = [
   { index: 0, id: "moss-01", biome: "mosswake", biomeName: "Mosswake Entrance", name: "The First Warmth", seedId: "moss-01-seed" },
   { index: 1, id: "moss-02", biome: "mosswake", biomeName: "Mosswake Entrance", name: "Borrowed Spark", seedId: "moss-02-seed" },
@@ -49,6 +54,26 @@ export const JOURNEY_ROOMS: readonly JourneyRoom[] = [
 
 function boundedFrontier(frontierRoom: number): number {
   return Math.max(0, Math.min(JOURNEY_ROOMS.length - 1, Math.floor(frontierRoom)));
+}
+
+export function journeyStart(
+  frontierRoom: number,
+  completedRoomIds: readonly string[],
+  journeyComplete: boolean,
+): JourneyStart {
+  if (journeyComplete) {
+    return { roomIndex: JOURNEY_ROOMS.length - 1, isRevisit: true };
+  }
+
+  const completed = new Set(completedRoomIds);
+  let roomIndex = boundedFrontier(frontierRoom);
+  while (
+    roomIndex < JOURNEY_ROOMS.length - 1 &&
+    completed.has(JOURNEY_ROOMS[roomIndex].id)
+  ) {
+    roomIndex += 1;
+  }
+  return { roomIndex, isRevisit: false };
 }
 
 export function roomVisitMode(

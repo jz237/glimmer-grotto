@@ -36,6 +36,11 @@ only its local puzzle, never the deepest unlocked chamber, restored-room set, or
 collected memories. Optional discoveries are therefore never permanently
 missable within a journey.
 
+Waking the Heartbloom begins the afterglow rather than closing the save. The
+ending remains viewable, while every restored room stays open for quiet replay
+and missed-memory recovery. Replayed rooms return to the Heartbloom and never
+fire the campaign ending a second time.
+
 ## Experience rules
 
 - New mechanics receive a safe teaching room before combination puzzles.

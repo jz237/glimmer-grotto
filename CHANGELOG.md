@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.12.0 — Afterglow
+
+- Kept completed journeys explorable after the Heartbloom wakes, closing the
+  last path by which a missed echo seed could become inaccessible.
+- Added an afterglow state that opens every restored room, returns replayed
+  rooms to the Heartbloom, and cannot retrigger or overwrite the ending.
+- Reworked the ending to name outstanding memories, celebrate a complete
+  lantern, and make continued exploration the primary next action without
+  removing the confirmed fresh-journey option.
+- Added completed-save title actions for exploring the afterglow or viewing the
+  ending again, with clear afterglow language in the room story and grotto map.
+- Compressed the ending into a polished two-column layout at short landscape
+  sizes so its message, collection state, and all three choices fit at once.
+- Completed an 11-room late-campaign playtest, intentionally left one Tideglass
+  memory behind, recovered it after the ending, and brought the deterministic
+  suite to 172 checks.
+
 ## 0.11.0 — Paths remembered
 
 - Added a complete grotto map that distinguishes restored rooms, the current

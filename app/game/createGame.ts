@@ -22,7 +22,7 @@ import {
 } from "./input";
 import { mothPose } from "./motion";
 import { interactionTargetAt, isBlockedCell } from "./navigation";
-import { frontierAfterSolve, roomVisitMode } from "./journey";
+import { frontierAfterSolve, journeyStart, roomVisitMode } from "./journey";
 import {
   createInitialPuzzleState,
   ringBell,
@@ -177,6 +177,7 @@ class GlimmerScene extends Phaser.Scene {
   private readonly collectedSeeds: Set<string>;
   private readonly seenBiomes: Set<BiomeId>;
   private readonly audio: AudioGarden;
+  private readonly afterglow: boolean;
   private settings: AccessibilitySettings;
   private roomIndex: number;
   private frontierRoomIndex: number;
@@ -204,6 +205,7 @@ class GlimmerScene extends Phaser.Scene {
     completedRooms: string[];
     collectedSeeds: string[];
     seenBiomes: BiomeId[];
+    afterglow: boolean;
     settings: AccessibilitySettings;
     onEvent(event: GameEvent): void;
   }) {
@@ -213,6 +215,7 @@ class GlimmerScene extends Phaser.Scene {
     this.completedRooms = new Set(options.completedRooms);
     this.collectedSeeds = new Set(options.collectedSeeds);
     this.seenBiomes = new Set(options.seenBiomes);
+    this.afterglow = options.afterglow;
     this.settings = options.settings;
     this.onEvent = options.onEvent;
     this.audio = new AudioGarden(options.settings);
@@ -222,7 +225,7 @@ class GlimmerScene extends Phaser.Scene {
     this.startedAt = Date.now();
     this.input.keyboard?.on("keydown", this.onKeyDown, this);
     this.input.on("pointerdown", this.onPointerDown, this);
-    this.loadRoom(this.roomIndex);
+    this.loadRoom(this.roomIndex, this.afterglow);
     this.onEvent({ type: "ready", totalRooms: ROOMS.length });
   }
 
@@ -345,6 +348,10 @@ class GlimmerScene extends Phaser.Scene {
       this.announce(
         `${this.biomeArrival.name}. ${this.biomeArrival.title} ${this.biomeArrival.story}`,
       );
+    } else if (this.afterglow) {
+      this.announce(
+        `Afterglow in ${this.room.name}. Every restored path is open from the map.`,
+      );
     } else if (this.isRevisit) {
       this.announce(`Revisiting ${this.room.name}. Your deeper path stays saved.`);
     } else {
@@ -369,8 +376,10 @@ class GlimmerScene extends Phaser.Scene {
       this.emitProgress();
       this.audio.solve();
       this.announce(
-        this.isRevisit
-          ? "The room shines again. Press action to return to your deeper path."
+        this.afterglow
+          ? "The room shines again. Press action to return to the Heartbloom."
+          : this.isRevisit
+            ? "The room shines again. Press action to return to your deeper path."
           : "The room is restored. Press action to continue deeper.",
       );
     }
@@ -719,8 +728,10 @@ class GlimmerScene extends Phaser.Scene {
       .text(
         WIDTH / 2,
         HEIGHT / 2 + 24,
-        this.isRevisit
-          ? "Press action to return to your deeper path"
+        this.afterglow
+          ? "Press action to return to the Heartbloom"
+          : this.isRevisit
+            ? "Press action to return to your deeper path"
           : this.roomIndex === ROOMS.length - 1
             ? "Press action to wake the Heartbloom"
             : "Press action to continue deeper",
@@ -856,7 +867,7 @@ class GlimmerScene extends Phaser.Scene {
     }
     if (this.solved) {
       if (this.isRevisit) {
-        this.loadRoom(this.frontierRoomIndex);
+        this.loadRoom(this.frontierRoomIndex, this.afterglow);
         this.emitProgress();
         return;
       }
@@ -1119,19 +1130,18 @@ class GlimmerScene extends Phaser.Scene {
 }
 
 export function mountGame(options: MountOptions): GameHandle {
-  let initialRoom = Phaser.Math.Clamp(options.save.currentRoom, 0, ROOMS.length - 1);
-  while (
-    initialRoom < ROOMS.length - 1 &&
-    options.save.completedRooms.includes(ROOMS[initialRoom].id)
-  ) {
-    initialRoom += 1;
-  }
+  const start = journeyStart(
+    options.save.currentRoom,
+    options.save.completedRooms,
+    options.save.journeyComplete,
+  );
 
   const scene = new GlimmerScene({
-    roomIndex: initialRoom,
+    roomIndex: start.roomIndex,
     completedRooms: options.save.completedRooms,
     collectedSeeds: options.save.collectedSeeds,
     seenBiomes: options.save.seenBiomes,
+    afterglow: start.isRevisit,
     settings: options.save.settings,
     onEvent: options.onEvent,
   });

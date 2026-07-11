@@ -5,6 +5,45 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-11 — Light after the ending
+
+- **Build:** 0.12.0 release candidate
+- **Scenario:** Resume at Rootsong with ten memories, restore the final eleven
+  rooms while deliberately skipping The Sunken Lantern's seed, wake the
+  Heartbloom at 14/15, enter the afterglow, recover that seed, and return to the
+  Heartbloom and title without replaying the ending.
+- **Inputs:** keyboard movement/action, pointer activation, and Escape.
+- **Viewports:** 1280 × 720 desktop and 667 × 375 phone landscape.
+- **Coverage:** full late-campaign navigation, two biome arrivals, every
+  remaining rootsong/tide/charge mechanic, incomplete and complete ending copy,
+  all-restored map state, postgame replay, final-memory persistence, title
+  return, focus return, and short-landscape layout.
+
+### Observations
+
+- All eleven rooms restored through their real movement and interaction paths.
+  The ending arrived at 20/20 and 14/15, explicitly named the one waiting
+  memory, and made continued exploration the primary action.
+- The afterglow reopened at the Heartbloom with all five map groups at 4/4,
+  nineteen revisit choices, no locked rooms, and The Sunken Lantern correctly
+  marked “Memory waiting.”
+- Recovering the final seed changed the collection to 15/15. Solving that old
+  room returned to the Heartbloom in afterglow instead of firing the ending,
+  while a title round trip retained both completion and the full lantern.
+- The first phone pass spent its entire opening viewport on the ending flower.
+  A compact two-column ending now presents the flower, message, collection
+  state, and all three actions together without document scrolling.
+- The completed phone map remained internally scrollable with its heading,
+  summary, close control, first room, and 4/4 biome state visible. Escape closed
+  it and returned focus to Map.
+
+### Follow-up
+
+- Run the 1.0 clean-profile completion gate without imported or pre-seeded
+  progress, then repeat with high contrast and larger text enabled.
+- Observe whether a first-time human finisher chooses the afterglow naturally
+  when one or more memories remain.
+
 ## 2026-07-10 — Returning for a missed light
 
 - **Build:** 0.11.0 release candidate
