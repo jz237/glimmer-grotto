@@ -1,7 +1,10 @@
 import Phaser from "phaser";
+import { biomeArrivalForRoom } from "./biomes";
 import { ROOMS } from "./content";
 import type {
   AccessibilitySettings,
+  BiomeArrival,
+  BiomeId,
   Cell,
   GameCommand,
   GameEvent,
@@ -170,6 +173,7 @@ class GlimmerScene extends Phaser.Scene {
   private readonly onEvent: (event: GameEvent) => void;
   private readonly completedRooms: Set<string>;
   private readonly collectedSeeds: Set<string>;
+  private readonly seenBiomes: Set<BiomeId>;
   private readonly audio: AudioGarden;
   private settings: AccessibilitySettings;
   private roomIndex: number;
@@ -189,11 +193,13 @@ class GlimmerScene extends Phaser.Scene {
   private gamepadButtons = { action: false, focus: false, hint: false };
   private hintIndex = 0;
   private tutorialStep: TutorialStep | null = null;
+  private biomeArrival: BiomeArrival | null = null;
 
   constructor(options: {
     roomIndex: number;
     completedRooms: string[];
     collectedSeeds: string[];
+    seenBiomes: BiomeId[];
     settings: AccessibilitySettings;
     onEvent(event: GameEvent): void;
   }) {
@@ -201,6 +207,7 @@ class GlimmerScene extends Phaser.Scene {
     this.roomIndex = options.roomIndex;
     this.completedRooms = new Set(options.completedRooms);
     this.collectedSeeds = new Set(options.collectedSeeds);
+    this.seenBiomes = new Set(options.seenBiomes);
     this.settings = options.settings;
     this.onEvent = options.onEvent;
     this.audio = new AudioGarden(options.settings);
@@ -228,12 +235,25 @@ class GlimmerScene extends Phaser.Scene {
 
   dispatch(command: GameCommand): void {
     this.audio.wake();
+    if (
+      this.biomeArrival &&
+      command.type !== "pause" &&
+      command.type !== "resume" &&
+      command.type !== "settings"
+    ) {
+      if (command.type === "continue" || command.type === "interact") {
+        this.dismissBiomeArrival();
+      }
+      return;
+    }
     switch (command.type) {
       case "move":
         this.move(command.dx, command.dy);
         break;
       case "interact":
         this.interact();
+        break;
+      case "continue":
         break;
       case "hint":
         this.requestHint();
@@ -289,6 +309,10 @@ class GlimmerScene extends Phaser.Scene {
       this.roomIndex === 0 && !this.completedRooms.has(this.room.id)
         ? "move"
         : null;
+    const arrival = biomeArrivalForRoom(ROOMS, this.roomIndex);
+    this.biomeArrival = arrival && !this.seenBiomes.has(arrival.biome)
+      ? arrival
+      : null;
     this.drawRoom();
     this.onEvent({
       type: "room",
@@ -301,10 +325,17 @@ class GlimmerScene extends Phaser.Scene {
       hints: this.room.hints,
     });
     this.onEvent({ type: "tutorial", step: this.tutorialStep });
+    this.onEvent({ type: "biomeArrival", arrival: this.biomeArrival });
     if (!this.settings.reducedMotion) {
       this.cameras.main.fadeIn(240, 4, 19, 19);
     }
-    this.announce(`${this.room.name}. ${this.room.subtitle}`);
+    if (this.biomeArrival) {
+      this.announce(
+        `${this.biomeArrival.name}. ${this.biomeArrival.title} ${this.biomeArrival.story}`,
+      );
+    } else {
+      this.announce(`${this.room.name}. ${this.room.subtitle}`);
+    }
   }
 
   private drawRoom(): void {
@@ -792,6 +823,10 @@ class GlimmerScene extends Phaser.Scene {
   }
 
   private interact(preferredCell?: Cell): void {
+    if (this.biomeArrival) {
+      this.dismissBiomeArrival();
+      return;
+    }
     if (this.solved) {
       if (this.roomIndex >= ROOMS.length - 1) {
         this.onEvent({ type: "journeyComplete" });
@@ -872,6 +907,16 @@ class GlimmerScene extends Phaser.Scene {
     this.audio.bump();
     this.pulseAt(this.playerCell, this.room.palette.stone);
     this.announce("Nothing nearby needs the lantern just now.");
+  }
+
+  private dismissBiomeArrival(): void {
+    if (!this.biomeArrival) return;
+    const biome = this.biomeArrival.biome;
+    this.seenBiomes.add(biome);
+    this.biomeArrival = null;
+    this.onEvent({ type: "biomeArrival", arrival: null });
+    this.onEvent({ type: "biomeSeen", biome });
+    this.announce(`${this.room.name}. ${this.room.subtitle}`);
   }
 
   private resetRoom(): void {
@@ -1030,6 +1075,7 @@ export function mountGame(options: MountOptions): GameHandle {
     roomIndex: initialRoom,
     completedRooms: options.save.completedRooms,
     collectedSeeds: options.save.collectedSeeds,
+    seenBiomes: options.save.seenBiomes,
     settings: options.save.settings,
     onEvent: options.onEvent,
   });

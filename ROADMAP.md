@@ -18,8 +18,9 @@ quality, performance, then cosmetic polish.
   and animation-feedback passes are complete. Structured human playthroughs
   remain.
 - **Alpha:** full navigation/action traces and the automated pacing curve are
-  complete. Refine all biome identities, improve narrative transitions, and
-  tune room order from human playtest observations.
+  complete, alongside the first biome-identity and narrative-transition pass.
+  Refine room-to-room story echoes and tune room order from human playtest
+  observations.
 - **Beta:** content freeze, accessibility audit, current/previous browser matrix,
   offline/update testing, performance profiling, and license review.
 - **1.0:** zero severe defects, clean-profile completion, rollback rehearsal,

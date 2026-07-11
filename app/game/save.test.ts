@@ -60,6 +60,23 @@ describe("local save safety", () => {
     expect(storage.getItem(SAVE_KEY)).toContain('"currentRoom":7');
   });
 
+  it("migrates older saves and keeps only known biome arrivals", () => {
+    const storage = new MemoryStorage();
+    const legacy = { ...createFreshSave() };
+    Reflect.deleteProperty(legacy, "seenBiomes");
+    storage.setItem(SAVE_KEY, JSON.stringify(legacy));
+    expect(loadSave(storage).seenBiomes).toEqual([]);
+
+    storage.setItem(
+      SAVE_KEY,
+      JSON.stringify({
+        ...createFreshSave(),
+        seenBiomes: ["prism-pools", "unknown-cave", "prism-pools"],
+      }),
+    );
+    expect(loadSave(storage).seenBiomes).toEqual(["prism-pools"]);
+  });
+
   it("rejects invalid imports and clears both save generations", () => {
     expect(() => importSave('{"schemaVersion":99}')).toThrow(/valid/i);
     const storage = new MemoryStorage();

@@ -88,6 +88,7 @@ export interface SaveGameV1 {
   currentRoom: number;
   completedRooms: string[];
   collectedSeeds: string[];
+  seenBiomes: BiomeId[];
   settings: AccessibilitySettings;
   playTimeMs: number;
   startedAt: string;
@@ -98,9 +99,20 @@ export interface SaveGameV1 {
 export type InputMethod = "keyboard" | "pointer" | "touch" | "gamepad";
 export type TutorialStep = "move" | "interact" | "follow";
 
+export interface BiomeArrival {
+  biome: BiomeId;
+  name: string;
+  eyebrow: string;
+  title: string;
+  story: string;
+  buttonLabel: string;
+  glyph: string;
+}
+
 export type GameCommand =
   | { type: "move"; dx: -1 | 0 | 1; dy: -1 | 0 | 1 }
   | { type: "interact" }
+  | { type: "continue" }
   | { type: "hint" }
   | { type: "reset" }
   | { type: "focus" }
@@ -124,6 +136,8 @@ export type GameEvent =
   | { type: "hint"; index: 1 | 2 | 3; hint: string }
   | { type: "inputMethod"; method: InputMethod }
   | { type: "tutorial"; step: TutorialStep | null }
+  | { type: "biomeArrival"; arrival: BiomeArrival | null }
+  | { type: "biomeSeen"; biome: BiomeId }
   | {
       type: "progress";
       currentRoom: number;

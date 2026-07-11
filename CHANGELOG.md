@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.8.0 — Thresholds
+
+- Added distinct arrival moments for Prism Pools, Hushroot Hollows, Tideglass
+  Deeps, and Heartbloom Sanctum, giving each biome a narrative and visual
+  threshold before its first puzzle.
+- Made arrivals accessible status-bearing dialogs with deliberate focus, clear
+  prose, and continuation through their button, Space, Enter, E, touch, or
+  standard controller action.
+- Locked movement and puzzle tools during each arrival, then restored focus to
+  the game surface so transitions cannot consume or leak player input.
+- Added additive save migration for acknowledged biomes. Unseen arrivals still
+  appear for older saves, while acknowledged arrivals do not replay on resume.
+- Completed and recorded a three-room cross-biome playtest at desktop and phone
+  landscape sizes, bringing the unit suite to 138 checks.
+
 ## 0.7.0 — Living light
 
 - Added full movement-and-action playthrough traces for all 20 rooms, including

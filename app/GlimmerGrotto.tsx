@@ -11,6 +11,7 @@ import {
 } from "react";
 import type {
   AccessibilitySettings,
+  BiomeArrival,
   GameCommand,
   GameEvent,
   GameHandle,
@@ -79,6 +80,13 @@ function actionControl(method: InputMethod): string {
   return "Space, Enter, or E";
 }
 
+function continueControl(method: InputMethod): string {
+  if (method === "gamepad") return "The A button also continues.";
+  if (method === "touch") return "The Action control also continues.";
+  if (method === "pointer") return "Select the button to continue.";
+  return "Space, Enter, or E also continue.";
+}
+
 function Modal({
   labelledBy,
   className = "",
@@ -138,6 +146,7 @@ export default function GlimmerGrotto() {
   const gameRef = useRef<GameHandle | null>(null);
   const saveRef = useRef<SaveGameV1 | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const arrivalButtonRef = useRef<HTMLButtonElement>(null);
   const sessionStartedRef = useRef(0);
   const holdDelayRef = useRef<number | null>(null);
   const holdIntervalRef = useRef<number | null>(null);
@@ -152,6 +161,7 @@ export default function GlimmerGrotto() {
   const [hintStage, setHintStage] = useState(0);
   const [inputMethod, setInputMethod] = useState<InputMethod>("keyboard");
   const [tutorialStep, setTutorialStep] = useState<TutorialStep | null>(null);
+  const [biomeArrival, setBiomeArrival] = useState<BiomeArrival | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
@@ -274,6 +284,17 @@ export default function GlimmerGrotto() {
         case "tutorial":
           setTutorialStep(event.step);
           break;
+        case "biomeArrival":
+          setBiomeArrival(event.arrival);
+          break;
+        case "biomeSeen":
+          updateSave((current) => ({
+            ...current,
+            seenBiomes: current.seenBiomes.includes(event.biome)
+              ? current.seenBiomes
+              : [...current.seenBiomes, event.biome],
+          }));
+          break;
         case "progress":
           updateSave((current) => ({
             ...current,
@@ -335,6 +356,15 @@ export default function GlimmerGrotto() {
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [helpOpen, restartOpen, screen, settingsOpen]);
 
+  useEffect(() => {
+    if (screen !== "playing") return;
+    const frame = window.requestAnimationFrame(() => {
+      if (biomeArrival) arrivalButtonRef.current?.focus({ preventScroll: true });
+      else mountRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [biomeArrival, screen]);
+
   const dispatch = useCallback(
     (command: GameCommand) => gameRef.current?.dispatch(command),
     [],
@@ -373,6 +403,7 @@ export default function GlimmerGrotto() {
     setRoom(null);
     setHintStage(0);
     setTutorialStep(null);
+    setBiomeArrival(null);
     setScreen("playing");
     setSession((value) => value + 1);
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -396,6 +427,7 @@ export default function GlimmerGrotto() {
     setRoom(null);
     setHintStage(0);
     setTutorialStep(null);
+    setBiomeArrival(null);
     setScreen("title");
     setAnnouncement("Journey saved. Back at the grotto entrance.");
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -502,6 +534,7 @@ export default function GlimmerGrotto() {
       setRoom(null);
       setHintStage(0);
       setTutorialStep(null);
+      setBiomeArrival(null);
       setScreen(persisted.journeyComplete ? "complete" : "title");
       setSession((value) => value + 1);
       setStorageNote("Save imported. Close settings to continue.");
@@ -671,7 +704,8 @@ export default function GlimmerGrotto() {
               ref={mountRef}
               className="game-mount"
               role="application"
-              tabIndex={0}
+              tabIndex={biomeArrival ? -1 : 0}
+              aria-hidden={biomeArrival ? true : undefined}
               aria-describedby={tutorial ? "first-room-guide" : undefined}
               aria-label="Top-down light puzzle. Use arrow keys or WASD, touch controls, or a gamepad to move. Use action to interact."
             />
@@ -681,24 +715,58 @@ export default function GlimmerGrotto() {
                 Waking the lantern…
               </div>
             )}
+            {biomeArrival && (
+              <section
+                className={`biome-arrival biome-arrival--${biomeArrival.biome}`}
+                role="dialog"
+                aria-labelledby="biome-arrival-title"
+                aria-describedby="biome-arrival-story"
+                onKeyDown={(event) => {
+                  if (["Space", "Enter", "KeyE"].includes(event.code)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    dispatch({ type: "continue" });
+                  }
+                }}
+              >
+                <div className="arrival-motif" aria-hidden="true">
+                  <span>{biomeArrival.glyph}</span>
+                </div>
+                <p className="arrival-eyebrow">{biomeArrival.eyebrow}</p>
+                <h2 id="biome-arrival-title">{biomeArrival.name}</h2>
+                <p className="arrival-title">{biomeArrival.title}</p>
+                <p id="biome-arrival-story" className="arrival-story">
+                  {biomeArrival.story}
+                </p>
+                <button
+                  ref={arrivalButtonRef}
+                  type="button"
+                  className="primary-button arrival-button"
+                  onClick={() => dispatch({ type: "continue" })}
+                >
+                  <Icon>✦</Icon> {biomeArrival.buttonLabel}
+                </button>
+                <small>{continueControl(inputMethod)}</small>
+              </section>
+            )}
             <div className="game-tools" aria-label="Puzzle tools">
               <button
                 type="button"
-                disabled={!room}
+                disabled={!room || Boolean(biomeArrival)}
                 onClick={() => dispatch({ type: "focus" })}
               >
                 <Icon>◉</Icon> Focus
               </button>
               <button
                 type="button"
-                disabled={!room}
+                disabled={!room || Boolean(biomeArrival)}
                 onClick={revealHint}
               >
                 <Icon>✦</Icon> Hint
               </button>
               <button
                 type="button"
-                disabled={!room}
+                disabled={!room || Boolean(biomeArrival)}
                 onClick={() => dispatch({ type: "reset" })}
               >
                 <Icon>↺</Icon> Reset
@@ -716,6 +784,7 @@ export default function GlimmerGrotto() {
                 <button
                   type="button"
                   className="touch-up"
+                  disabled={Boolean(biomeArrival)}
                   onPointerDown={(event) => {
                     setInputMethod("touch");
                     startHeldCommand(event, { type: "move", dx: 0, dy: -1 });
@@ -730,6 +799,7 @@ export default function GlimmerGrotto() {
                 <button
                   type="button"
                   className="touch-left"
+                  disabled={Boolean(biomeArrival)}
                   onPointerDown={(event) => {
                     setInputMethod("touch");
                     startHeldCommand(event, { type: "move", dx: -1, dy: 0 });
@@ -744,6 +814,7 @@ export default function GlimmerGrotto() {
                 <button
                   type="button"
                   className="touch-right"
+                  disabled={Boolean(biomeArrival)}
                   onPointerDown={(event) => {
                     setInputMethod("touch");
                     startHeldCommand(event, { type: "move", dx: 1, dy: 0 });
@@ -758,6 +829,7 @@ export default function GlimmerGrotto() {
                 <button
                   type="button"
                   className="touch-down"
+                  disabled={Boolean(biomeArrival)}
                   onPointerDown={(event) => {
                     setInputMethod("touch");
                     startHeldCommand(event, { type: "move", dx: 0, dy: 1 });
@@ -773,6 +845,7 @@ export default function GlimmerGrotto() {
               <button
                 type="button"
                 className="touch-action"
+                disabled={Boolean(biomeArrival)}
                 onPointerDown={() => {
                   setInputMethod("touch");
                   dispatch({ type: "interact" });

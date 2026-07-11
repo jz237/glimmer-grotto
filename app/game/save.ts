@@ -1,5 +1,6 @@
 import type {
   AccessibilitySettings,
+  BiomeId,
   SaveGameV1,
 } from "./contracts";
 
@@ -55,6 +56,7 @@ export function createFreshSave(now = new Date()): SaveGameV1 {
     currentRoom: 0,
     completedRooms: [],
     collectedSeeds: [],
+    seenBiomes: [],
     settings: { ...DEFAULT_SETTINGS },
     playTimeMs: 0,
     startedAt: timestamp,
@@ -65,6 +67,16 @@ export function createFreshSave(now = new Date()): SaveGameV1 {
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isBiomeId(value: string): value is BiomeId {
+  return [
+    "mosswake",
+    "prism-pools",
+    "hushroot",
+    "tideglass",
+    "heartbloom",
+  ].includes(value);
 }
 
 export function parseSave(raw: string): SaveGameV1 | null {
@@ -87,6 +99,9 @@ export function parseSave(raw: string): SaveGameV1 | null {
       currentRoom: Math.max(0, Math.floor(value.currentRoom)),
       completedRooms: [...new Set(value.completedRooms)],
       collectedSeeds: [...new Set(value.collectedSeeds)],
+      seenBiomes: isStringArray(value.seenBiomes)
+        ? [...new Set(value.seenBiomes.filter(isBiomeId))]
+        : [],
       settings: { ...DEFAULT_SETTINGS, ...value.settings },
       playTimeMs: Math.max(0, Number(value.playTimeMs) || 0),
       journeyComplete: Boolean(value.journeyComplete),

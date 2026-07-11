@@ -626,6 +626,128 @@ input:focus-visible {
   from { opacity: 0; transform: translate(-50%, 7px); }
 }
 
+.biome-arrival {
+  --arrival-accent: var(--glimmer);
+  --arrival-glow: rgba(120, 245, 174, 0.2);
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: clamp(24px, 5vw, 64px);
+  background:
+    radial-gradient(circle at 50% 38%, var(--arrival-glow), transparent 31%),
+    linear-gradient(145deg, rgba(2, 13, 17, 0.97), rgba(5, 24, 27, 0.98));
+  text-align: center;
+  animation: arrival-reveal 360ms ease-out;
+}
+
+.biome-arrival--prism-pools {
+  --arrival-accent: #9ee7ff;
+  --arrival-glow: rgba(108, 133, 255, 0.26);
+}
+
+.biome-arrival--hushroot {
+  --arrival-accent: #f5b8ff;
+  --arrival-glow: rgba(182, 107, 224, 0.23);
+}
+
+.biome-arrival--tideglass {
+  --arrival-accent: #79f3e6;
+  --arrival-glow: rgba(43, 183, 195, 0.24);
+}
+
+.biome-arrival--heartbloom {
+  --arrival-accent: #ffd58b;
+  --arrival-glow: rgba(243, 127, 143, 0.23);
+}
+
+.arrival-motif {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 82px;
+  margin-bottom: 16px;
+  border: 1px solid color-mix(in srgb, var(--arrival-accent) 52%, transparent);
+  border-radius: 48% 52% 45% 55%;
+  color: var(--arrival-accent);
+  font-size: 32px;
+  box-shadow: 0 0 45px var(--arrival-glow);
+  transform: rotate(-6deg);
+}
+
+.arrival-motif::before,
+.arrival-motif::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1px solid color-mix(in srgb, var(--arrival-accent) 28%, transparent);
+  border-radius: 55% 45% 52% 48%;
+  transform: rotate(24deg);
+}
+
+.arrival-motif::after {
+  inset: 19px;
+  transform: rotate(-18deg);
+}
+
+.arrival-motif span { transform: rotate(6deg); }
+
+.arrival-eyebrow {
+  margin: 0 0 8px;
+  color: var(--arrival-accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.biome-arrival h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(40px, 6vw, 68px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.arrival-title {
+  margin: 13px 0 0;
+  color: var(--arrival-accent);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(16px, 2vw, 21px);
+  font-style: italic;
+}
+
+.arrival-story {
+  max-width: 620px;
+  margin: 13px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.arrival-button {
+  margin-top: 22px;
+  border-color: var(--arrival-accent);
+  background: var(--arrival-accent);
+}
+
+.biome-arrival small {
+  margin-top: 9px;
+  color: rgba(220, 240, 234, 0.56);
+  font-size: 10px;
+}
+
+@keyframes arrival-reveal {
+  from { opacity: 0; transform: scale(1.015); }
+}
+
 .touch-controls {
   position: absolute;
   inset: auto 16px 16px;
@@ -637,6 +759,11 @@ input:focus-visible {
 }
 
 .touch-controls button { pointer-events: auto; touch-action: manipulation; }
+
+.touch-controls button:disabled {
+  opacity: 0.28;
+  pointer-events: none;
+}
 
 .touch-controls button:active {
   background: rgba(190, 255, 211, 0.25);
@@ -844,7 +971,8 @@ kbd { min-width: 33px; padding: 5px 7px; border: 1px solid rgba(207, 255, 221, 0
 .is-high-contrast .game-frame,
 .is-high-contrast .story-card,
 .is-high-contrast .hint-card,
-.is-high-contrast .tutorial-card { border-width: 2px; }
+.is-high-contrast .tutorial-card,
+.is-high-contrast .arrival-motif { border-width: 2px; }
 .is-large-text { font-size: 118%; }
 .is-large-text .story-card span,
 .is-large-text .hint-card span { font-size: 15px; }
@@ -1019,6 +1147,26 @@ kbd { min-width: 33px; padding: 5px 7px; border: 1px solid rgba(207, 255, 221, 0
     width: 66px;
     height: 66px;
   }
+
+  .biome-arrival {
+    padding: 10px 60px;
+  }
+
+  .arrival-motif {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 7px;
+    font-size: 21px;
+  }
+
+  .arrival-motif::before { inset: 6px; }
+  .arrival-motif::after { inset: 13px; }
+  .arrival-eyebrow { margin-bottom: 4px; font-size: 8px; }
+  .biome-arrival h2 { font-size: 32px; }
+  .arrival-title { margin-top: 5px; font-size: 14px; }
+  .arrival-story { max-width: 520px; margin-top: 6px; font-size: 11px; line-height: 1.4; }
+  .arrival-button { min-height: 38px; margin-top: 10px; padding-inline: 16px; font-size: 12px; }
+  .biome-arrival small { margin-top: 5px; font-size: 8px; }
 
   .tutorial-card {
     bottom: 9px;
