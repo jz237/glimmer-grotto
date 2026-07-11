@@ -32,6 +32,7 @@ import {
   traceBeam,
 } from "./puzzle";
 import { roomMechanicStatus } from "./status";
+import { gameTextSize } from "./text";
 
 const WIDTH = 960;
 const HEIGHT = 540;
@@ -597,7 +598,7 @@ class GlimmerScene extends Phaser.Scene {
         .text(world.x, world.y - 1, GLYPHS[bell.tone] ?? "•", {
           color: cssHex(this.room.palette.accent),
           fontFamily: "system-ui, sans-serif",
-          fontSize: "21px",
+          fontSize: gameTextSize(21, this.settings.largeText),
           fontStyle: "bold",
         })
         .setOrigin(0.5);
@@ -624,7 +625,7 @@ class GlimmerScene extends Phaser.Scene {
       .text(world.x, world.y, this.puzzle.tide === "high" ? "≈" : "⌄", {
         color: cssHex(this.room.palette.accent),
         fontFamily: "system-ui, sans-serif",
-        fontSize: "22px",
+        fontSize: gameTextSize(22, this.settings.largeText),
         fontStyle: "bold",
       })
       .setOrigin(0.5);
@@ -683,7 +684,7 @@ class GlimmerScene extends Phaser.Scene {
     this.add.text(34, 26, this.room.biomeName.toUpperCase(), {
       color: cssHex(this.room.palette.accent),
       fontFamily: "system-ui, sans-serif",
-      fontSize: "13px",
+      fontSize: gameTextSize(13, this.settings.largeText),
       fontStyle: "bold",
       letterSpacing: 2,
     });
@@ -691,7 +692,7 @@ class GlimmerScene extends Phaser.Scene {
       .text(WIDTH - 34, 26, `${this.roomIndex + 1} / ${ROOMS.length}`, {
         color: "#d9ece7",
         fontFamily: "system-ui, sans-serif",
-        fontSize: "13px",
+        fontSize: gameTextSize(13, this.settings.largeText),
       })
       .setOrigin(1, 0);
   }
@@ -719,7 +720,7 @@ class GlimmerScene extends Phaser.Scene {
       .text(WIDTH / 2, HEIGHT / 2 - 22, "ROOM RESTORED", {
         color: cssHex(this.room.palette.accent),
         fontFamily: "Georgia, serif",
-        fontSize: "27px",
+        fontSize: gameTextSize(27, this.settings.largeText),
         fontStyle: "bold",
         letterSpacing: 2,
       })
@@ -738,7 +739,7 @@ class GlimmerScene extends Phaser.Scene {
         {
           color: "#e9f3ef",
           fontFamily: "system-ui, sans-serif",
-          fontSize: "16px",
+          fontSize: gameTextSize(16, this.settings.largeText),
         },
       )
       .setOrigin(0.5);

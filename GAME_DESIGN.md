@@ -53,4 +53,7 @@ pre-repair copy remains available as the backup generation.
 - All text remains external to puzzle logic; version 1.0 is English-only.
 - Mica's movement, Luma's motion, screen effects, text size, contrast, music,
   and effects must respect the accessibility settings.
+- Larger text applies to all player-facing DOM and canvas labels. Responsive
+  layouts may reflow or scroll, but must not hide a puzzle requirement or
+  truncate the mechanic state needed to solve a room.
 - Player behavior is not transmitted or analyzed.

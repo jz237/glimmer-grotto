@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "glimmer-grotto-";
-const CACHE = "glimmer-grotto-v7";
+const CACHE = "glimmer-grotto-v8";
 const CORE = [
   "/",
   "/manifest.webmanifest",

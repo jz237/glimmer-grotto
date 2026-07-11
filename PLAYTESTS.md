@@ -5,6 +5,45 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-11 — Reading every path
+
+- **Build:** 0.14.0 release candidate
+- **Scenario:** Enable Larger text and High contrast together on a completed
+  afterglow, then inspect Settings, the ending, full journal, all-restored map,
+  and the three-mechanic Heartbloom finale before repeating the critical states
+  in phone landscape.
+- **Inputs:** pointer activation and Escape.
+- **Viewports:** 1280 × 720 desktop and 667 × 375 phone landscape.
+- **Coverage:** persistent accessibility settings, headings, body copy,
+  counters, controls, canvas labels, collection cards, map states, modal scroll,
+  close controls, focus return, touch-control clearance, and mechanic-state
+  legibility.
+
+### Observations
+
+- The initial implementation enlarged story copy but left dozens of explicit
+  pixel-sized labels unchanged. Shared text and heading lifts now reach every
+  fixed CSS label, while six Phaser label sites use the same saved setting.
+- The desktop Settings dialog, ending, two-column journal, and map remained
+  balanced with stronger borders and larger copy. All 15 stories and all 20 map
+  rooms remained reachable through their contained scroll regions.
+- At phone landscape size, the map and Settings dialog retained their heading,
+  close control, summary or first toggle, and internal scrollbar without
+  horizontal overflow. Escape closed Settings and returned focus correctly.
+- The first enlarged finale pass ellipsized “Glimmer source,” “Needs a glimmer,”
+  and “High · needs low.” The large-text-only status width now uses the safe
+  center gap, and all three labels wrap in full while clearing the direction pad
+  and Action control.
+- Automated guards now reject newly introduced fixed CSS font sizes or literal
+  Phaser font sizes that bypass the accessibility setting.
+
+### Follow-up
+
+- Repeat the opening guide and every biome arrival with Larger text enabled in
+  the clean-profile completion pass.
+- Continue the beta audit with screen-reader traversal and 200% browser zoom,
+  then cover the same states in the current/previous browser matrix.
+
 ## 2026-07-11 — Keeping the lantern safe
 
 - **Build:** 0.13.0 release candidate

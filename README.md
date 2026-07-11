@@ -22,9 +22,9 @@ npm test
 ```
 
 This runs strict TypeScript checking, puzzle/content validation, save recovery
-tests, a production build, and server-rendered shell tests. Every required room
-has a deterministic verified solution and a reachability check for its
-interactive objects.
+tests, accessibility-style guards, a production build, and server-rendered shell
+tests. Every required room has a deterministic verified solution and a
+reachability check for its interactive objects.
 
 ## Architecture
 

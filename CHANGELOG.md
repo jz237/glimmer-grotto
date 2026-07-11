@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.14.0 — Every word clear
+
+- Extended Larger text from two story fields to every fixed interface label,
+  including title and ending copy, counters, controls, tutorials, biome
+  arrivals, puzzle status, maps, memories, dialogs, settings, and save notices.
+- Added shared text and heading scale variables so responsive overrides inherit
+  the accessibility setting instead of silently reverting to smaller sizes.
+- Made Phaser-rendered biome, room, bell, tide, restoration, and continuation
+  labels scale by the saved setting and update immediately when it changes.
+- Widened the phone-landscape center status only when Larger text is active and
+  allowed its three mechanic labels to wrap, eliminating truncated finale
+  requirements while keeping both touch zones clear.
+- Verified Larger text together with High contrast across the completed ending,
+  journal, map, settings, afterglow finale, and 667 × 375 phone layout.
+- Added stylesheet and canvas-size regression guards, bringing the deterministic
+  unit suite to 179 checks.
+
 ## 0.13.0 — Safe keeping
 
 - Replaced count-based save repair with campaign-aware reconciliation against
