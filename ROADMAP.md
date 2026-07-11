@@ -14,13 +14,13 @@ quality, performance, then cosmetic polish.
   a 15-entry recovered-memory collection, progressive hints, environmental
   story, procedural sound, and ending.
 - **Vertical-slice polish — active:** short-landscape and touch ergonomics,
-  dialog accessibility, restart safety, save reconciliation, PWA update safety,
-  recorded room traces, opening-room guidance, and the first controller-tuning
-  and animation-feedback passes are complete. Persistent special-mechanic
-  feedback, the first cross-biome rootsong usability pass, and safe room replay
-  with a non-regressing campaign frontier are also complete. The afterglow now
-  preserves replay and missed-memory recovery after the ending. Structured
-  human playthroughs remain.
+  dialog accessibility, restart safety, campaign-aware save reconciliation,
+  PWA update safety, recorded room traces, opening-room guidance, and the first
+  controller-tuning and animation-feedback passes are complete. Persistent
+  special-mechanic feedback, the first cross-biome rootsong usability pass, and
+  safe room replay with a non-regressing campaign frontier are also complete.
+  The afterglow preserves replay and missed-memory recovery after the ending.
+  Structured human playthroughs remain.
 - **Alpha:** full navigation/action traces and the automated pacing curve are
   complete, alongside the first biome-identity, narrative-transition, and
   non-audio mechanic-comprehension passes. The first room-to-room story-echo

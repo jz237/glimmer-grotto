@@ -41,6 +41,11 @@ ending remains viewable, while every restored room stays open for quiet replay
 and missed-memory recovery. Replayed rooms return to the Heartbloom and never
 fire the campaign ending a second time.
 
+Local saves are reconciled against the authored campaign whenever they cross a
+storage boundary. Repair preserves the furthest credible restored room, closes
+impossible gaps, and never treats unknown room or memory IDs as progress. The
+pre-repair copy remains available as the backup generation.
+
 ## Experience rules
 
 - New mechanics receive a safe teaching room before combination puzzles.

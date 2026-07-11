@@ -32,10 +32,10 @@ import {
   clearSave,
   createFreshSave,
   exportSave,
-  importSave,
-  loadSave,
+  importSaveWithRecovery,
+  loadSaveWithRecovery,
   persistSave,
-  reconcileCompletion,
+  type SaveRecovery,
 } from "./game/save";
 
 type Screen = "title" | "playing" | "complete";
@@ -95,6 +95,22 @@ function continueControl(method: InputMethod): string {
   if (method === "touch") return "The Action control also continues.";
   if (method === "pointer") return "Select the button to continue.";
   return "Space, Enter, or E also continue.";
+}
+
+function saveRecoveryMessage(recovery: SaveRecovery): string {
+  if (recovery === "repaired") {
+    return "A save inconsistency was repaired while keeping your furthest restored room.";
+  }
+  if (recovery === "backup") {
+    return "The newest autosave was damaged, so the last safe backup was restored.";
+  }
+  if (recovery === "reset") {
+    return "Neither local save copy could be read. A fresh journey was created; an exported save can still be imported in Settings.";
+  }
+  if (recovery === "unavailable") {
+    return "Autosave is unavailable in this browser context. Export a save before leaving.";
+  }
+  return "";
 }
 
 function Modal({
@@ -186,24 +202,23 @@ export default function GlimmerGrotto() {
   const [installPrompt, setInstallPrompt] =
     useState<InstallPromptEvent | null>(null);
   const [storageNote, setStorageNote] = useState("");
+  const [saveRecoveryNotice, setSaveRecoveryNotice] = useState("");
 
   useEffect(() => {
     const storage = browserStorage();
-    const loaded = loadSave(storage);
-    const reconciled = reconcileCompletion(loaded, TOTAL_ROOMS);
-    const initialSave = reconciled === loaded
-      ? loaded
-      : persistSave(storage, reconciled);
+    const loaded = loadSaveWithRecovery(storage);
+    const initialSave = loaded.save;
+    const recoveryNote = saveRecoveryMessage(loaded.recovery);
     saveRef.current = initialSave;
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
       setSave(initialSave);
       if (initialSave.journeyComplete) setScreen("complete");
-      if (!storage) {
-        setStorageNote(
-          "Autosave is unavailable in this browser context. Export a save before leaving.",
-        );
+      if (recoveryNote) {
+        setStorageNote(recoveryNote);
+        setSaveRecoveryNotice(recoveryNote);
+        setAnnouncement(recoveryNote);
       }
     });
 
@@ -427,6 +442,7 @@ export default function GlimmerGrotto() {
       next = clearSave(browserStorage());
       saveRef.current = next;
       setSave(next);
+      setSaveRecoveryNotice("");
     }
     sessionStartedRef.current = Date.now();
     setRoom(null);
@@ -587,11 +603,8 @@ export default function GlimmerGrotto() {
     event.target.value = "";
     if (!file) return;
     try {
-      const imported = reconcileCompletion(
-        importSave(await file.text()),
-        TOTAL_ROOMS,
-      );
-      const persisted = persistSave(browserStorage(), imported);
+      const imported = importSaveWithRecovery(await file.text());
+      const persisted = persistSave(browserStorage(), imported.save);
       saveRef.current = persisted;
       setSave(persisted);
       setRoom(null);
@@ -604,7 +617,12 @@ export default function GlimmerGrotto() {
       setMapOpen(false);
       setScreen(persisted.journeyComplete ? "complete" : "title");
       setSession((value) => value + 1);
-      setStorageNote("Save imported. Close settings to continue.");
+      const note = imported.repaired
+        ? "Save imported and safely repaired. Close settings to continue."
+        : "Save imported. Close settings to continue.";
+      setStorageNote(note);
+      setSaveRecoveryNotice(imported.repaired ? note : "");
+      setAnnouncement(note);
     } catch (error) {
       setStorageNote(error instanceof Error ? error.message : "Save import failed.");
     }
@@ -702,6 +720,20 @@ export default function GlimmerGrotto() {
           </button>
         </div>
       </header>
+
+      {saveRecoveryNotice && screen !== "playing" && (
+        <aside className="save-recovery-banner" role="status">
+          <Icon>↺</Icon>
+          <span>{saveRecoveryNotice}</span>
+          <button
+            type="button"
+            onClick={() => setSaveRecoveryNotice("")}
+            aria-label="Dismiss save recovery notice"
+          >
+            ×
+          </button>
+        </aside>
+      )}
 
       {screen === "title" && (
         <section className="title-screen" aria-labelledby="game-title">

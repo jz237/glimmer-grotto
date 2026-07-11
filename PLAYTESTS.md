@@ -5,6 +5,46 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-11 — Keeping the lantern safe
+
+- **Build:** 0.13.0 release candidate
+- **Scenario:** Load the existing completed afterglow, then exercise repaired
+  primary, backup recovery, invalid dual-generation, interrupted-ending, and
+  inconsistent-import fixtures against the authored campaign directory.
+- **Inputs:** browser reload plus deterministic save/storage fixtures.
+- **Viewports:** 1280 × 720 desktop and 667 × 375 phone landscape for the
+  recovery notice and completed-save migration.
+- **Coverage:** canonical midgame and afterglow round trips, progress gaps,
+  unknown room and seed IDs, future discoveries, duplicate entries, biome
+  arrivals, settings bounds, timestamps, play time, repair backup preservation,
+  corrupt-primary recovery, and unrecoverable reset.
+
+### Observations
+
+- The real 20/20, 15/15 afterglow save loaded unchanged, showed no repair
+  notice, and retained both completed-journey actions.
+- The recovery notice remained readable above the completed ending at both
+  viewports, exposed an explicit dismiss control, and did not obscure the
+  ending's collection state or actions.
+- A room-four save with gaps was rebuilt as the first four authored rooms while
+  retaining room four as its frontier. Unknown IDs and a Tideglass seed were
+  removed; its reachable Mosswake seed and Prism arrival remained.
+- Out-of-range audio levels were clamped, malformed toggles returned to safe
+  defaults, and negative play time returned to zero.
+- Twenty unknown room IDs no longer produce a false ending. Conversely, the
+  explicit ending flag and the full authored room set each recover a complete,
+  playable afterglow.
+- A valid backup replaced a damaged primary. A repair preserved the original
+  source as backup, while two unreadable generations produced a fresh canonical
+  save and the correct recovery outcome for the player notice.
+
+### Follow-up
+
+- Repeat export/import through native file pickers in the beta browser matrix,
+  including a manually edited but recoverable file.
+- Exercise backup recovery alongside the offline and service-worker update
+  matrix so storage repair and app-shell replacement are covered together.
+
 ## 2026-07-11 — Light after the ending
 
 - **Build:** 0.12.0 release candidate

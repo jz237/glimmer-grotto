@@ -32,8 +32,8 @@ interactive objects.
 - Phaser renders the top-down cave rooms and handles game input.
 - Puzzle state and player-facing mechanic status are deterministic and separate
   from rendering.
-- Progress is stored only in versioned local browser storage, with a backup and
-  manual export/import.
+- Progress is stored only in versioned local browser storage, with
+  campaign-aware repair, a preserved backup, and manual export/import.
 - The Sites project is static from the player's perspective: no account,
   backend, analytics, advertising, or monetization.
 

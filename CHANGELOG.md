@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.13.0 — Safe keeping
+
+- Replaced count-based save repair with campaign-aware reconciliation against
+  the exact 20 rooms, 15 memories, and five biome thresholds.
+- Preserved the furthest credible progress while filling impossible room gaps,
+  removing unknown IDs, and preventing future memories or arrivals from leaking
+  into shallower journeys.
+- Normalized accessibility toggles, audio levels, play time, timestamps, and
+  ending state at every load, import, export, and autosave boundary.
+- Kept the original pre-repair save as the backup, restored valid backups when
+  the newest copy was damaged, and created a clean start only when neither
+  generation could be read.
+- Added distinct, dismissible player notices for automatic repair, backup
+  recovery, reset, and unavailable storage without interrupting play.
+- Verified an existing 20/20, 15/15 afterglow save migrates unchanged and
+  expanded the deterministic suite to 177 checks.
+
 ## 0.12.0 — Afterglow
 
 - Kept completed journeys explorable after the Heartbloom wakes, closing the
