@@ -11,12 +11,16 @@ export interface GamepadFrame {
   describe: boolean;
   focus: boolean;
   hint: boolean;
+  memories: boolean;
+  menu: boolean;
 }
 
 export interface DirectionRepeatState {
   direction: MoveDirection | null;
   nextAt: number;
 }
+
+export type GamepadMenuRequest = "memories" | "menu";
 
 export const GAMEPAD_DEAD_ZONE = 0.55;
 export const GAMEPAD_INITIAL_REPEAT_MS = 285;
@@ -47,11 +51,58 @@ export function readGamepadFrame(
     describe: pressed(gamepad, 1),
     focus: pressed(gamepad, 2),
     hint: pressed(gamepad, 3),
+    memories: pressed(gamepad, 8),
+    menu: pressed(gamepad, 9),
   };
+}
+
+export function nextDialogFocusIndex(
+  count: number,
+  currentIndex: number,
+  direction: MoveDirection,
+): number {
+  if (count <= 0) return -1;
+  const delta = direction === "left" || direction === "up" ? -1 : 1;
+  const start = currentIndex >= 0 && currentIndex < count
+    ? currentIndex
+    : delta > 0
+      ? -1
+      : 0;
+  return (start + delta + count) % count;
+}
+
+export function adjustedRangeValue(
+  value: number,
+  min: number,
+  max: number,
+  step: number,
+  direction: "left" | "right",
+): number {
+  const safeStep = Number.isFinite(step) && step > 0 ? step : 1;
+  const delta = direction === "left" ? -safeStep : safeStep;
+  const clamped = Math.min(max, Math.max(min, value + delta));
+  return Number(clamped.toFixed(10));
+}
+
+export function gamepadMenuRequest(
+  frame: GamepadFrame,
+  previous: Pick<GamepadFrame, "memories" | "menu">,
+): GamepadMenuRequest | null {
+  if (frame.menu && !previous.menu) return "menu";
+  if (frame.memories && !previous.memories) return "memories";
+  return null;
 }
 
 export function createDirectionRepeatState(): DirectionRepeatState {
   return { direction: null, nextAt: 0 };
+}
+
+export function createSuppressedDirectionRepeatState(
+  direction: MoveDirection | null,
+): DirectionRepeatState {
+  return direction
+    ? { direction, nextAt: Number.POSITIVE_INFINITY }
+    : createDirectionRepeatState();
 }
 
 export function advanceDirectionRepeat(

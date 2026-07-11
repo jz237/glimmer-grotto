@@ -19,6 +19,8 @@ import type {
 import {
   advanceDirectionRepeat,
   createDirectionRepeatState,
+  createSuppressedDirectionRepeatState,
+  gamepadMenuRequest,
   readGamepadFrame,
 } from "./input";
 import { mothPose } from "./motion";
@@ -202,6 +204,8 @@ class GlimmerScene extends Phaser.Scene {
     describe: false,
     focus: false,
     hint: false,
+    memories: false,
+    menu: false,
   };
   private compassActive = false;
   private hintIndex = 0;
@@ -233,6 +237,7 @@ class GlimmerScene extends Phaser.Scene {
     this.startedAt = Date.now();
     this.input.keyboard?.on("keydown", this.onKeyDown, this);
     this.input.on("pointerdown", this.onPointerDown, this);
+    this.synchronizeGamepadAfterPause();
     this.loadRoom(this.roomIndex, this.afterglow);
     this.onEvent({ type: "ready", totalRooms: ROOMS.length });
   }
@@ -298,6 +303,7 @@ class GlimmerScene extends Phaser.Scene {
         this.scene.pause();
         break;
       case "resume":
+        this.synchronizeGamepadAfterPause();
         if (this.input.keyboard) this.input.keyboard.enabled = true;
         this.scene.resume();
         break;
@@ -1112,6 +1118,11 @@ class GlimmerScene extends Phaser.Scene {
     else if (code === "KeyC") this.dispatch({ type: "describe" });
     else if (code === "KeyF") this.dispatch({ type: "focus" });
     else if (code === "KeyH") this.dispatch({ type: "hint" });
+    else if (code === "Escape") this.onEvent({ type: "openMenu" });
+    else if (code === "KeyJ") this.onEvent({ type: "openMemories" });
+    else if (code === "KeyM" && !this.biomeArrival) {
+      this.onEvent({ type: "openMap" });
+    }
   }
 
   private onPointerDown(pointer: Phaser.Input.Pointer): void {
@@ -1132,6 +1143,34 @@ class GlimmerScene extends Phaser.Scene {
     }
   }
 
+  private synchronizeGamepadAfterPause(): void {
+    const gamepad = navigator
+      .getGamepads?.()
+      .find((candidate): candidate is Gamepad => Boolean(candidate));
+    if (!gamepad) {
+      this.gamepadButtons = {
+        action: false,
+        describe: false,
+        focus: false,
+        hint: false,
+        memories: false,
+        menu: false,
+      };
+      this.gamepadRepeat = createDirectionRepeatState();
+      return;
+    }
+    const frame = readGamepadFrame(gamepad);
+    this.gamepadButtons = {
+      action: frame.action,
+      describe: frame.describe,
+      focus: frame.focus,
+      hint: frame.hint,
+      memories: frame.memories,
+      menu: frame.menu,
+    };
+    this.gamepadRepeat = createSuppressedDirectionRepeatState(frame.direction);
+  }
+
   private pollGamepad(time: number): void {
     const gamepad = navigator
       .getGamepads?.()
@@ -1143,6 +1182,8 @@ class GlimmerScene extends Phaser.Scene {
         describe: false,
         focus: false,
         hint: false,
+        memories: false,
+        menu: false,
       };
       return;
     }
@@ -1153,9 +1194,30 @@ class GlimmerScene extends Phaser.Scene {
       frame.action ||
       frame.describe ||
       frame.focus ||
-      frame.hint
+      frame.hint ||
+      frame.memories ||
+      frame.menu
     ) {
       this.setInputMethod("gamepad");
+    }
+    const menuRequest = gamepadMenuRequest(
+      frame,
+      this.gamepadButtons,
+    );
+    if (menuRequest) {
+      this.gamepadButtons = {
+        action: frame.action,
+        describe: frame.describe,
+        focus: frame.focus,
+        hint: frame.hint,
+        memories: frame.memories,
+        menu: frame.menu,
+      };
+      this.gamepadRepeat = createDirectionRepeatState();
+      this.onEvent({
+        type: menuRequest === "menu" ? "openMenu" : "openMemories",
+      });
+      return;
     }
     if (frame.action && !this.gamepadButtons.action) {
       this.dispatch({ type: "interact" });
@@ -1174,6 +1236,8 @@ class GlimmerScene extends Phaser.Scene {
       describe: frame.describe,
       focus: frame.focus,
       hint: frame.hint,
+      memories: frame.memories,
+      menu: frame.menu,
     };
 
     const repeat = advanceDirectionRepeat(frame.direction, time, this.gamepadRepeat);

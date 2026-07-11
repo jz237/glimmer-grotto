@@ -4,7 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const ORIGIN = "https://glimmer-grotto.example";
-const CURRENT_CACHE = "glimmer-grotto-v12";
+const CURRENT_CACHE = "glimmer-grotto-v13";
 const workerSource = await readFile(
   new URL("../public/sw.js", import.meta.url),
   "utf8",

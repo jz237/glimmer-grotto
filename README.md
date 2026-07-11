@@ -13,7 +13,9 @@ npm run dev
 ```
 
 Open the local URL printed by the development server. The game supports
-keyboard, pointer, touch, and standard gamepads.
+keyboard, pointer, touch, and standard gamepads. A gamepad can operate the
+title, ending, Lantern menu, dialogs, settings, map, journal, and every room
+without requiring a second input device.
 
 ## Quality checks
 

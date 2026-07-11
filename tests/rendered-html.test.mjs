@@ -38,10 +38,11 @@ test("server-renders the finished Glimmer Grotto shell", async () => {
 });
 
 test("ships the PWA files and removes the disposable starter", async () => {
-  const [manifest, worker, packageJson] = await Promise.all([
+  const [manifest, worker, packageJson, clientManifestSource] = await Promise.all([
     readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"),
     readFile(new URL("../public/sw.js", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../dist/client/.vite/manifest.json", import.meta.url), "utf8"),
   ]);
   assert.equal(JSON.parse(manifest).name, "Glimmer Grotto");
   const parsedManifest = JSON.parse(manifest);
@@ -49,10 +50,19 @@ test("ships the PWA files and removes the disposable starter", async () => {
     parsedManifest.icons.map((icon) => icon.sizes),
     ["192x192", "512x512"],
   );
-  assert.match(worker, /glimmer-grotto-v12/);
+  assert.match(worker, /glimmer-grotto-v13/);
   assert.match(worker, /third-party-notices\.txt/);
   assert.match(worker, /SKIP_WAITING/);
   assert.match(worker, /url\.searchParams\.has\("_rsc"\)/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
+  const clientManifest = JSON.parse(clientManifestSource);
+  const interfaceBundle = await readFile(
+    new URL(`../dist/client/${clientManifest["app/GlimmerGrotto.tsx"].file}`, import.meta.url),
+    "utf8",
+  );
+  assert.match(interfaceBundle, /Lantern menu/);
+  assert.match(interfaceBundle, /getGamepads/);
+  assert.match(interfaceBundle, /data-controller-default/);
+  assert.match(interfaceBundle, /scrollBy/);
   await assert.rejects(access(new URL("../app/_sites-preview/SkeletonPreview.tsx", root)));
 });

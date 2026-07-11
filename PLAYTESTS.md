@@ -5,6 +5,53 @@ every observed defect into either a fix or a named follow-up. Agent-assisted
 passes validate mechanics and instrumentation; external human observation is
 still required before content freeze.
 
+## 2026-07-11 — Holding the whole path
+
+- **Build:** 0.19.0 release candidate
+- **Scenario:** Exercise the deterministic input model and audited UI transition
+  graph for a controller-only route from title to play, Lantern menu, Settings,
+  journal, map replay, completed ending, and back to play or title without a
+  keyboard, pointer, or touchscreen.
+- **Inputs:** standard-mapped left stick, D-pad, A, B, View/Back, and Menu/Start,
+  plus deterministic held-button and held-direction transition frames.
+- **Viewport:** interface-independent input pass; all controller focus targets
+  retain the existing responsive and short-landscape dialog layouts.
+- **Coverage:** title and ending focus, default actions, menu entry, map lock
+  during biome arrivals, journal shortcut, settings/help reachability, modal
+  focus wrapping and repeat cadence, checkbox activation, stepped sliders,
+  long-panel scrolling, room selection, close behavior, and resume suppression.
+
+### Observations
+
+- The room itself had mature controller support, but the surrounding shell did
+  not poll a gamepad. Starting the game, recovering a missed memory, changing
+  accessibility settings, reading the journal, or leaving the ending still
+  required a second device.
+- Menu/Start now pauses into a focused Lantern menu. Its first movement lands
+  on the map, while every other route—journal, Settings, How to Play, and title—
+  is reachable through the same visible focus system. View/Back opens the echo
+  journal directly.
+- Title and ending screens now use the same dominant-axis dead zone and repeat
+  cadence as room movement. A chooses the focused action, and the primary
+  continue/explore action is the default when no page control was focused.
+- Dialog D-pad movement wraps without a dead end. A activates buttons and
+  toggles, left/right changes volume sliders by their declared 5% step, and
+  up/down scrolls long panels that otherwise contain only a Close control.
+- Closing with B or choosing with A previously risked becoming a fresh Compass
+  or room action on resume. The scene now snapshots every held controller input
+  at each handoff and requires neutral release before accepting another edge.
+- Map travel remains unavailable during an unacknowledged biome arrival, so a
+  controller cannot silently skip the threshold; journal, help, and settings
+  remain available.
+
+### Follow-up
+
+- Repeat the complete flow on physical Xbox, PlayStation, Nintendo-layout, and
+  generic controllers in the current/previous desktop browser matrix; confirm
+  each browser's labels for View/Back and Menu/Start.
+- Include controller reconnection, wireless sleep/wake, and browser focus loss
+  in the installed-device PWA matrix.
+
 ## 2026-07-11 — Accounting for every shipped light
 
 - **Build:** 0.18.0 release candidate

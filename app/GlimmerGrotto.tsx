@@ -37,6 +37,10 @@ import {
   persistSave,
   type SaveRecovery,
 } from "./game/save";
+import {
+  useDialogGamepadNavigation,
+  usePageGamepadNavigation,
+} from "./useGamepadNavigation";
 
 type Screen = "title" | "playing" | "complete";
 const TOTAL_ROOMS = 20;
@@ -156,6 +160,8 @@ function Modal({
     };
   }, [onClose]);
 
+  useDialogGamepadNavigation(dialogRef, onClose);
+
   return (
     <dialog
       ref={dialogRef}
@@ -194,6 +200,7 @@ export default function GlimmerGrotto() {
   const [mechanicStatus, setMechanicStatus] = useState<MechanicStatusItem[]>([]);
   const [recentMemory, setRecentMemory] = useState<EchoMemory | null>(null);
   const [roomDescription, setRoomDescription] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -357,6 +364,18 @@ export default function GlimmerGrotto() {
         case "inputMethod":
           setInputMethod(event.method);
           break;
+        case "openMenu":
+          gameRef.current?.pause();
+          setMenuOpen(true);
+          break;
+        case "openMemories":
+          gameRef.current?.pause();
+          setMemoryOpen(true);
+          break;
+        case "openMap":
+          gameRef.current?.pause();
+          setMapOpen(true);
+          break;
         case "tutorial":
           setTutorialStep(event.step);
           break;
@@ -435,13 +454,20 @@ export default function GlimmerGrotto() {
     if (screen !== "playing") return;
     const onVisibility = () => {
       if (document.hidden) gameRef.current?.pause();
-      else if (!settingsOpen && !helpOpen && !restartOpen && !memoryOpen && !mapOpen) {
+      else if (
+        !menuOpen &&
+        !settingsOpen &&
+        !helpOpen &&
+        !restartOpen &&
+        !memoryOpen &&
+        !mapOpen
+      ) {
         gameRef.current?.resume();
       }
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [helpOpen, mapOpen, memoryOpen, restartOpen, screen, settingsOpen]);
+  }, [helpOpen, mapOpen, memoryOpen, menuOpen, restartOpen, screen, settingsOpen]);
 
   useEffect(() => {
     if (screen !== "playing") return;
@@ -495,6 +521,7 @@ export default function GlimmerGrotto() {
     setMechanicStatus([]);
     setRecentMemory(null);
     setRoomDescription(null);
+    setMenuOpen(false);
     setMemoryOpen(false);
     setMapOpen(false);
     setScreen("playing");
@@ -520,6 +547,7 @@ export default function GlimmerGrotto() {
     setMechanicStatus([]);
     setRecentMemory(null);
     setRoomDescription(null);
+    setMenuOpen(false);
     setMemoryOpen(false);
     setMapOpen(false);
     setScreen("title");
@@ -580,6 +608,11 @@ export default function GlimmerGrotto() {
     dispatch({ type: "hint" });
   };
 
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+    gameRef.current?.resume();
+  }, []);
+
   const openMemories = useCallback(() => {
     gameRef.current?.pause();
     setMemoryOpen(true);
@@ -608,6 +641,20 @@ export default function GlimmerGrotto() {
     },
     [dispatch],
   );
+
+  usePageGamepadNavigation({
+    enabled:
+      screen !== "playing" &&
+      !menuOpen &&
+      !settingsOpen &&
+      !helpOpen &&
+      !restartOpen &&
+      !memoryOpen &&
+      !mapOpen,
+    onInputMethod: setInputMethod,
+    onMemories: openMemories,
+    onSettings: openSettings,
+  });
 
   const install = async () => {
     if (!installPrompt) return;
@@ -660,6 +707,7 @@ export default function GlimmerGrotto() {
       setMechanicStatus([]);
       setRecentMemory(null);
       setRoomDescription(null);
+      setMenuOpen(false);
       setMemoryOpen(false);
       setMapOpen(false);
       setScreen(persisted.journeyComplete ? "complete" : "title");
@@ -752,6 +800,7 @@ export default function GlimmerGrotto() {
               className={`icon-button topbar-memory-button ${screen === "playing" ? "is-playing" : ""}`}
               onClick={openMemories}
               aria-label={`Echo memories, ${seeds} of ${ECHO_MEMORIES.length} found`}
+              aria-keyshortcuts="J"
             >
               <Icon>✧</Icon>
               <span className="sr-only">Echo memories</span>
@@ -808,6 +857,7 @@ export default function GlimmerGrotto() {
               <button
                 type="button"
                 className="primary-button"
+                data-controller-default
                 onClick={enterJourney}
                 onPointerEnter={() => void preloadGameModule()}
                 onFocus={() => void preloadGameModule()}
@@ -890,6 +940,7 @@ export default function GlimmerGrotto() {
                 className="journey-memory-count"
                 onClick={openMemories}
                 aria-label={`Open echo memories, ${seeds} of ${ECHO_MEMORIES.length} found`}
+                aria-keyshortcuts="J"
               >
                 <b>{seeds}</b>/15 seeds
               </button>
@@ -908,7 +959,8 @@ export default function GlimmerGrotto() {
                 tutorial ? "first-room-guide" : "",
                 mechanicStatus.length > 0 && !biomeArrival ? "puzzle-status" : "",
               ].filter(Boolean).join(" ") || undefined}
-              aria-label="Top-down light puzzle. Use arrow keys or WASD, touch controls, or a gamepad to move. Use action to interact. Use Compass or C to describe the room."
+              aria-keyshortcuts="Escape J M"
+              aria-label="Top-down light puzzle. Use arrow keys or WASD, touch controls, or a gamepad to move. Use action to interact. Use Compass or C to describe the room. J opens memories; M opens the map."
             />
             {!room && (
               <div className="game-loading" role="status">
@@ -955,6 +1007,7 @@ export default function GlimmerGrotto() {
                 type="button"
                 disabled={!room || Boolean(biomeArrival)}
                 onClick={() => dispatch({ type: "focus" })}
+                aria-keyshortcuts="F"
               >
                 <Icon>◉</Icon> Focus
               </button>
@@ -963,6 +1016,7 @@ export default function GlimmerGrotto() {
                 disabled={!room || Boolean(biomeArrival)}
                 onClick={() => dispatch({ type: "describe" })}
                 aria-label="Describe room with Lantern compass"
+                aria-keyshortcuts="C"
               >
                 <Icon>◎</Icon> Compass
               </button>
@@ -970,6 +1024,7 @@ export default function GlimmerGrotto() {
                 type="button"
                 disabled={!room || Boolean(biomeArrival)}
                 onClick={revealHint}
+                aria-keyshortcuts="H"
               >
                 <Icon>✦</Icon> Hint
               </button>
@@ -977,6 +1032,7 @@ export default function GlimmerGrotto() {
                 type="button"
                 disabled={!room || Boolean(biomeArrival)}
                 onClick={() => dispatch({ type: "reset" })}
+                aria-keyshortcuts="R"
               >
                 <Icon>↺</Icon> Reset
               </button>
@@ -984,6 +1040,7 @@ export default function GlimmerGrotto() {
                 type="button"
                 disabled={!room || Boolean(biomeArrival)}
                 onClick={openMap}
+                aria-keyshortcuts="M"
               >
                 <Icon>⌖</Icon> Map
               </button>
@@ -1176,7 +1233,12 @@ export default function GlimmerGrotto() {
             <span><b>{seeds}</b> / {ECHO_MEMORIES.length} memories found</span>
           </div>
           <div className="title-actions">
-            <button type="button" className="primary-button" onClick={enterJourney}>
+            <button
+              type="button"
+              className="primary-button"
+              data-controller-default
+              onClick={enterJourney}
+            >
               <Icon>⌖</Icon> Explore restored grotto
             </button>
             <button type="button" className="secondary-button" onClick={returnToTitle}>
@@ -1199,11 +1261,119 @@ export default function GlimmerGrotto() {
         </span>
       </footer>
 
+      {menuOpen && (
+        <Modal
+          labelledBy="lantern-menu-title"
+          className="lantern-menu-panel"
+          onClose={closeMenu}
+        >
+          <button
+            type="button"
+            className="modal-close"
+            onClick={closeMenu}
+            aria-label="Close lantern menu"
+            autoFocus
+          >
+            ×
+          </button>
+          <p className="eyebrow">The path can wait</p>
+          <h2 id="lantern-menu-title">Lantern menu</h2>
+          <p className="lantern-menu-intro">
+            Review the journey or make the grotto more comfortable. Your
+            current room stays saved.
+          </p>
+          <div className="lantern-menu-actions">
+            <button
+              type="button"
+              className="lantern-menu-action"
+              disabled={!room || Boolean(biomeArrival)}
+              aria-keyshortcuts="M"
+              onClick={() => {
+                setMenuOpen(false);
+                setMapOpen(true);
+              }}
+            >
+              <Icon>⌖</Icon>
+              <span>
+                <strong>Grotto map</strong>
+                <small>Replay restored rooms and recover memories</small>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="lantern-menu-action"
+              aria-keyshortcuts="J"
+              onClick={() => {
+                setMenuOpen(false);
+                setMemoryOpen(true);
+              }}
+            >
+              <Icon>✧</Icon>
+              <span>
+                <strong>Echo memories</strong>
+                <small>Read every keeper story found so far</small>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="lantern-menu-action"
+              onClick={() => {
+                setMenuOpen(false);
+                setSettingsOpen(true);
+              }}
+            >
+              <Icon>⚙</Icon>
+              <span>
+                <strong>Settings</strong>
+                <small>Motion, contrast, text, music, and effects</small>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="lantern-menu-action"
+              onClick={() => {
+                setMenuOpen(false);
+                setHelpOpen(true);
+              }}
+            >
+              <Icon>?</Icon>
+              <span>
+                <strong>How to play</strong>
+                <small>Review every keyboard and controller control</small>
+              </span>
+            </button>
+          </div>
+          {biomeArrival && (
+            <p className="lantern-menu-arrival-note">
+              Continue the biome arrival before changing rooms from the map.
+            </p>
+          )}
+          {inputMethod === "gamepad" && (
+            <p className="controller-dialog-guide lantern-menu-controller-guide">
+              Use the left stick or D-pad to move. A chooses; B returns to the
+              grotto.
+            </p>
+          )}
+          <button
+            type="button"
+            className="secondary-button lantern-menu-return"
+            onClick={returnToTitle}
+          >
+            Return to title
+          </button>
+        </Modal>
+      )}
+
       {helpOpen && (
         <Modal labelledBy="help-title" onClose={closeHelp}>
             <button type="button" className="modal-close" onClick={closeHelp} aria-label="Close how to play" autoFocus>×</button>
             <p className="eyebrow">Lantern guide</p>
             <h2 id="help-title">How to play</h2>
+            {inputMethod === "gamepad" && (
+              <p className="controller-dialog-guide">
+                Use up or down to scroll this guide. Press B to close it.
+              </p>
+            )}
             <div className="control-list">
               <div><kbd>WASD</kbd><kbd>↑↓←→</kbd><span>Move one step</span></div>
               <div><kbd>Space</kbd><kbd>E</kbd><span>Turn, ring, carry, or continue</span></div>
@@ -1211,11 +1381,17 @@ export default function GlimmerGrotto() {
               <div><kbd>C</kbd><span>Describe position, paths, landmarks, and beam</span></div>
               <div><kbd>H</kbd><span>Hear the next hint</span></div>
               <div><kbd>R</kbd><span>Reset the current room</span></div>
+              <div><kbd>Esc</kbd><span>Open the Lantern menu</span></div>
+              <div><kbd>J</kbd><span>Open echo memories</span></div>
+              <div><kbd>M</kbd><span>Open the grotto map</span></div>
               <div><kbd>Stick</kbd><kbd>D-pad</kbd><span>Controller movement</span></div>
               <div><kbd>A</kbd><span>Controller action</span></div>
               <div><kbd>B</kbd><span>Controller Lantern compass</span></div>
               <div><kbd>X</kbd><span>Controller focus glow</span></div>
               <div><kbd>Y</kbd><span>Controller hint</span></div>
+              <div><kbd>View</kbd><span>Controller echo memories</span></div>
+              <div><kbd>Menu</kbd><span>Open the controller Lantern menu</span></div>
+              <div><kbd>D-pad</kbd><kbd>A</kbd><kbd>B</kbd><span>Move, choose, and close in dialogs</span></div>
             </div>
             <p className="modal-note">
               There are no timers or fail states. Every choice can be changed,
@@ -1229,6 +1405,11 @@ export default function GlimmerGrotto() {
             <button type="button" className="modal-close" onClick={closeSettings} aria-label="Close settings" autoFocus>×</button>
             <p className="eyebrow">Make it yours</p>
             <h2 id="settings-title">Settings</h2>
+            {inputMethod === "gamepad" && (
+              <p className="controller-dialog-guide">
+                Use up or down between settings, left or right on sliders, A to toggle, and B to close.
+              </p>
+            )}
             <label className="toggle-row">
               <span><b>Reduced motion</b><small>Stops movement animation and ambient drift.</small></span>
               <input
@@ -1315,6 +1496,11 @@ export default function GlimmerGrotto() {
               </p>
             </div>
           </div>
+          {inputMethod === "gamepad" && (
+            <p className="controller-dialog-guide">
+              Use the D-pad to scroll and B to close. Menu opens the Lantern menu after you return.
+            </p>
+          )}
           <div className="memory-groups">
             {memoryGroups.map((group) => (
               <section
@@ -1378,6 +1564,11 @@ export default function GlimmerGrotto() {
               </p>
             </div>
           </div>
+          {inputMethod === "gamepad" && (
+            <p className="controller-dialog-guide">
+              Use the left stick or D-pad to move between available rooms. A travels; B closes.
+            </p>
+          )}
           <div className="map-groups">
             {mapGroups.map((group) => (
               <section

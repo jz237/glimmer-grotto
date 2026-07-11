@@ -16,7 +16,9 @@ quality, performance, then cosmetic polish.
 - **Vertical-slice polish — active:** short-landscape and touch ergonomics,
   dialog accessibility, restart safety, campaign-aware save reconciliation,
   PWA update safety, recorded room traces, opening-room guidance, and the first
-  controller-tuning and animation-feedback passes are complete. Persistent
+  controller-tuning and animation-feedback passes are complete. The
+  controller-only shell, Lantern menu, dialog-navigation, replay, journal, and
+  settings pass is also complete. Persistent
   special-mechanic feedback, the first cross-biome rootsong usability pass, and
   safe room replay with a non-regressing campaign frontier are also complete.
   The afterglow preserves replay and missed-memory recovery after the ending.
@@ -33,10 +35,10 @@ quality, performance, then cosmetic polish.
   Compass now exposes position, paths, landmarks, objects, and beam state on
   demand. The first fine-pointer reflow pass is complete at 200%- and
   400%-equivalent CSS viewports. Content freeze, hands-on screen-reader and
-  native browser-zoom audits, the current/previous browser matrix,
-  installed-device PWA testing and performance profiling remain. The automated
-  first-install, disconnected-shell, cache-integrity, explicit-update, and
-  shipped-artifact license passes are complete against the real production
+  native browser-zoom audits, the current/previous browser and physical-gamepad
+  matrix, installed-device PWA testing and performance profiling remain. The
+  automated first-install, disconnected-shell, cache-integrity, explicit-update,
+  and shipped-artifact license passes are complete against the real production
   graph. Third-party notices are player-visible, available offline, and guarded
   against dependency, license-text, and generated-asset drift.
 - **1.0:** zero severe defects, clean-profile completion, rollback rehearsal,

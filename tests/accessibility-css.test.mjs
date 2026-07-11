@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const [css, game, interfaceSource] = await Promise.all([
+const [css, game, interfaceSource, controllerSource] = await Promise.all([
   readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   readFile(new URL("../app/game/createGame.ts", import.meta.url), "utf8"),
   readFile(new URL("../app/GlimmerGrotto.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../app/useGamepadNavigation.ts", import.meta.url), "utf8"),
 ]);
 
 test("the large-text setting reaches every fixed interface label", () => {
@@ -58,4 +59,26 @@ test("offline state is visible and announced without hiding local save safety", 
     /Offline<\/strong> · your journey still saves on this device\./,
   );
   assert.match(css, /\.connection-banner\s*\{[^}]*border-color:[^}]*background:/s);
+});
+
+test("controller players can reach recovery menus and operate their dialogs", () => {
+  assert.match(game, /KeyJ[\s\S]*openMemories/);
+  assert.match(game, /KeyM[\s\S]*openMap/);
+  assert.match(game, /Escape[\s\S]*openMenu/);
+  assert.match(game, /gamepadMenuRequest\(/);
+  assert.match(game, /create\(\)[\s\S]*synchronizeGamepadAfterPause\(\)/);
+  assert.match(controllerSource, /navigator\s*\.getGamepads/);
+  assert.match(interfaceSource, /usePageGamepadNavigation\(\{/);
+  assert.match(interfaceSource, /data-controller-default/);
+  assert.match(controllerSource, /nextDialogFocusIndex\(/);
+  assert.match(controllerSource, /active\.click\(\)/);
+  assert.match(controllerSource, /active\.type === "range"/);
+  assert.match(controllerSource, /\.scrollBy\(\{/);
+  assert.match(controllerSource, /frame\.describe && !cancelHeld/);
+  assert.match(interfaceSource, /aria-keyshortcuts="J"/);
+  assert.match(interfaceSource, /aria-keyshortcuts="M"/);
+  assert.match(interfaceSource, /Controller echo memories/);
+  assert.match(interfaceSource, /controller Lantern menu/);
+  assert.match(interfaceSource, /id="lantern-menu-title"/);
+  assert.match(css, /\.controller-dialog-guide\s*\{[^}]*font-size:/s);
 });

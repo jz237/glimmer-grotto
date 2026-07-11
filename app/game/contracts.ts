@@ -155,6 +155,9 @@ export type GameEvent =
   | { type: "description"; message: string | null }
   | { type: "hint"; index: 1 | 2 | 3; hint: string }
   | { type: "inputMethod"; method: InputMethod }
+  | { type: "openMenu" }
+  | { type: "openMemories" }
+  | { type: "openMap" }
   | { type: "tutorial"; step: TutorialStep | null }
   | { type: "biomeArrival"; arrival: BiomeArrival | null }
   | { type: "biomeSeen"; biome: BiomeId }

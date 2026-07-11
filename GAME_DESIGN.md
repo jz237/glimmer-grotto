@@ -63,6 +63,11 @@ pre-repair copy remains available as the backup generation.
   truncate the mechanic state needed to solve a room.
 - Canvas spatial state must remain inspectable without sight through concise,
   current, keyboard-, pointer-, and controller-accessible descriptions.
+- A standard gamepad alone must be sufficient to start or resume a journey,
+  complete rooms, reach help and accessibility settings, read memories, revisit
+  restored rooms, operate dialogs, view the ending, and return to the title.
+  Buttons or directions held across screen transitions must not leak into the
+  newly focused interface or resumed room.
 - Narrow fine-pointer reflow must preserve every puzzle tool and move guidance
   or mechanic state below the canvas when an overlay can no longer remain
   legible. Viewport width alone must never activate redundant touch controls.

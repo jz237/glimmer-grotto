@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.19.0 — The whole path in hand
+
+- Added controller navigation to the title and ending screens, with the left
+  stick or D-pad moving visible focus and A activating the focused choice.
+- Added an in-game Lantern menu on the standard Menu/Start button and Escape,
+  giving controller players direct routes to the map, echo journal, Settings,
+  How to Play, and the title without switching input devices.
+- Mapped View/Back to the echo journal, J to memories, and M to the grotto map;
+  exposed keyboard shortcuts through accessible button and game-surface
+  metadata and documented every new binding in the lantern guide.
+- Made native dialogs controller-operable: stick/D-pad focus cycling and held
+  repeat, A activation and checkbox toggling, B close, range adjustment by
+  declared step, and scrolling for long read-only journals and guides.
+- Suppressed buttons and directions held across title/game/dialog transitions,
+  preventing the A or B used to choose or close a screen from leaking into the
+  newly resumed room.
+- Kept room travel locked during a biome-arrival threshold while leaving help,
+  settings, and recovered memories available from the Lantern menu.
+- Expanded deterministic controller and accessibility coverage to 207 unit
+  checks and 18 production-shell checks, and advanced the offline cache to v13.
+
 ## 0.18.0 — Every light accounted for
 
 - Added a production-distribution ledger for Phaser, EventEmitter3, the React
